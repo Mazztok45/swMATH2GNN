@@ -37,13 +37,16 @@ end
 
 
 df = DataFrame()
-selected_vars = [:classification, :description, :articles_count, :authors]
+selected_vars = [:classification, :description, :articles_count, :authors, :dependencies]
 
 json_file = JSON3.read("data/0.json")
 print(json_file)
 for k in keys(json_file)
     temp_dict = copy(json_file[k])
     temp_dict[:classification] = join(temp_dict[:classification],";")
+    if temp_dict[:dependencies] == nothing
+        temp_dict[:dependencies] = string()
+    end
     result = Dict{Symbol, Any}()
     for (k,v) in temp_dict
         if k in selected_vars
@@ -53,6 +56,6 @@ for k in keys(json_file)
     temp_df = result |> DataFrame;
     append!(df,temp_df)
 end
+
+
 println(df)
-
-
