@@ -9,4 +9,4 @@ Pkg.add("StructTypes")
 Pkg.add("Plots")
 Pkg.add("CSV")
 Pkg.add("PlotlyJS")
-
+Pkg.add("HTTP")
