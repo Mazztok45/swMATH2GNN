@@ -6,9 +6,16 @@ using HTTP
 
 
 df = CSV.read("data/full_df.csv", DataFrame)
+df = subset(df, :articles_count => a -> a.>0)
 
-#println(df[!,"id"])
-
-r = HTTP.request("GET", "https://api.zbmath.org/v1/document/_structured_search?page=0&results_per_page=100&software%20id=11353")
-println(r.status)
-println(String(r.body))
+for id in df[!,"id"]
+    println(id)
+    try
+        r = HTTP.request("GET", "https://api.zbmath.org/v1/document/_structured_search?page=0&results_per_page=100&software%20id="*string(id))
+        println(r.status)
+        println(String(r.body))
+        write("articles_metadata_collection/"*string(id)*".json",String(r.body)) 
+    catch y
+        warn("Exception: ", y) 
+    end
+end
