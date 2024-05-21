@@ -1,8 +1,7 @@
 using JSON3
 using DataFrames
 using JSONTables
-using LinearAlgebra
-using Flatten
+using CSV
 
 df = DataFrame()
 json_files = readdir("data")
@@ -12,6 +11,10 @@ selected_vars = [:classification, :description, :articles_count, :authors, :depe
 
 
 for file in json_files
+    if file == "full_df.csv"
+        continue
+    end
+    println(file)
     json_file = JSON3.read(string("data/", file))
     for k in keys(json_file)
         temp_dict = copy(json_file[k])
@@ -35,4 +38,4 @@ for file in json_files
     end
 end
 
-println(size(df))
+CSV.write("data/full_df.csv", df)
