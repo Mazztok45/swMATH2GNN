@@ -6,9 +6,11 @@ using Graphs
 using GraphPlot
 using LinearAlgebra
 using MetaGraphsNext
+using Compose
+import Cairo, Fontconfig
 
 function extract_metadata()
-    #TODO: Make a sample Dataset to try out the Graphs
+    
     df = DataFrame()
     json_file = JSON3.read("data/0.json")
     selected_vars = [:classification, :description, :articles_count, :authors, :dependencies, :homepage,
@@ -46,7 +48,7 @@ function create_metagraph()
         Graph();
         label_type = Int, 
         vertex_data_type=String,
-        # edge_data_type=Symbol,  
+        # edge_data_type=Nothing,  
         graph_data="Relations between softwares"
     )
     #creating the nodes
@@ -55,19 +57,21 @@ function create_metagraph()
     end
     #creating the edges
     for row in eachrow(software_df)
-        id = row."id"
+        id_row = row."id"
         rel_string = row."related_software"
+        name_row = row."name"
 
         for label in labels(software_rel)
             name = software_rel[label]
             if occursin(name, rel_string)
-                add_edge!(software_rel, id, label)
+                edge =add_edge!(software_rel, label, id_row)
+                
             end
 
         end
     end
 
-
+    draw(PNG("software_rel.png", 16cm, 16cm), gplot(software_rel, layout=spectral_layout))
     return software_rel
 end
 

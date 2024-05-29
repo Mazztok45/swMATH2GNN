@@ -15,4 +15,7 @@ import Pkg
 #Pkg.add("GeometricFlux")
 # Pkg.add("Graphs")
 # Pkg.add("GraphPlot")
-Pkg.add("MetaGraphsNext")
+# Pkg.add("MetaGraphsNext")
+# Pkg.add("Compose")
+Pkg.add("Cairo")
+Pkg.add("Fontconfig")
