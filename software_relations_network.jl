@@ -10,34 +10,44 @@ using Compose
 import Cairo, Fontconfig
 
 function extract_metadata()
+
     
     df = DataFrame()
-    json_file = JSON3.read("data/0.json")
+    json_files = readdir("data/")
     selected_vars = [:classification, :description, :articles_count, :authors, :dependencies, :homepage,
     :id, :keywords, :license_terms, :name, :operating_systems, :orms_id,:programming_languages,
     :related_software, :source_code, :standard_articles, :zbmath_url]
-      
-    for k in keys(json_file)
-        temp_dict = copy(json_file[k])
-        for var in selected_vars
-            if temp_dict[var] == nothing
-                temp_dict[var] = string()
-            end
-            if temp_dict[var] isa Array
-                temp_dict[var] = join(temp_dict[var], ";")
-            end
+    for file in json_files
+        if file == "full_df.csv"
+            continue
         end
-        result = Dict{Symbol, Any}()
+        if file =="articles_metadata_collection"
+            continue
+        end
+        println(file)
+        json_file = JSON3.read(string("data/", file))
+        for k in keys(json_file)
+            temp_dict = copy(json_file[k])
+            for var in selected_vars
+                if temp_dict[var] == nothing
+                    temp_dict[var] = string()
+                end
+                if temp_dict[var] isa Array
+                    temp_dict[var] = join(temp_dict[var], ";")
+                end
+            end
+            result = Dict{Symbol, Any}()
 
-        for (k,v) in temp_dict
-            if k in selected_vars
-                push!(result, k=>v)
+            for (k,v) in temp_dict
+                if k in selected_vars
+                    push!(result, k=>v)
+                end
             end
+            temp_df = result |> DataFrame;
+            append!(df,temp_df)
         end
-        temp_df = result |> DataFrame;
-        append!(df,temp_df)
+        
     end
-    
     return df
 end
 
@@ -55,6 +65,7 @@ function create_metagraph()
     for row in eachrow(software_df)
         software_rel[row."id"] = row."name"
     end
+    println("created nodes!")
     #creating the edges
     for row in eachrow(software_df)
         id_row = row."id"
@@ -64,13 +75,12 @@ function create_metagraph()
         for label in labels(software_rel)
             name = software_rel[label]
             if occursin(name, rel_string)
-                edge =add_edge!(software_rel, label, id_row)
-                
+                edge =add_edge!(software_rel, label, id_row)                
             end
 
         end
     end
-
+    println("created edges!")
     draw(PNG("software_rel.png", 16cm, 16cm), gplot(software_rel, layout=spectral_layout))
     return software_rel
 end
