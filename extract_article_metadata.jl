@@ -8,24 +8,56 @@ function extract_articles_metadata()
     json_file = JSON3.read("articles_data/articles_metadata_collection/2.json")
     result = json_file.result
 
-    selected_vars = [:biographic_references, :contributors, :database, :datestamp, :document_type, :editorial_contributions,
-    :id, :identifier, :keywords, :language, :license, :links, :msc, :references, :source, :states, :title,
+    selected_vars = [:contributors, :database, :datestamp, :document_type, :editorial_contributions,
+    :id, :identifier, :keywords, :language, :links, :msc, :references,  :title,
     :year, :zbmath_url]
-    for (key, value) in result
+    df_list = []
+    for item in result
         df_dict = Dict()
-        #temp_dict = copy(result[k])
-        for var in selected_vars
-            if var == "contributors"
-                print(value)
-            end
-            #println(var)
-            #print(result[k][var])
-        end
-        #println(df_dict)
+        for key in item
+            if key.first == :contributors
+                contrib = key.second
+                authors = contrib.authors
+                author_names = []
+                for author in authors
+                    name = author.name
+                    if startswith(name, "zbMATH Open Web Interface contents unavailable")
+                        name = "Not available"
+                    end
+                    push!(author_names, name)
+                end
+                df_dict["author_name"] = author_names
+            
+            elseif key.first == :document_type
+                doc_type = key.second.description
+                df_dict["document_type"] = doc_type
+            
+            
+            # to be implemted, very brute force but didn't find a better solution
+            # because we don't need all the information in the nested dicts.
 
-        result |> DataFrame;
-        #append!(df,temp_df)
-        #println(result)
+            elseif key.first == :editorial_contributions
+            
+            elseif key.first == :language
+            
+            elseif key.first == :links
+            
+            elseif key.first == :msc
+            
+            elseif key.first == :references
+            
+            elseif key.first == :language
+            
+            elseif key.first == :title
+            
+            # else, all the keys that are not nested
+            elseif in(key.first, selected_vars)
+                df_dict[key.first] = key.second 
+            end
+            
+        end
+        println(df_dict)
+        push!(df_list, df_dict)
     end
 end
 
