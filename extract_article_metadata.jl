@@ -1,12 +1,12 @@
 using JSON3
 using DataFrames
 using JSONTables
+using CSV
 
 function extract_articles_metadata()
     files = readdir("articles_data/articles_metadata_collection")
     df_list = []
     for file in files
-        println(file)
         file_name = string("articles_data/articles_metadata_collection/", file)
         json_file = JSON3.read(file_name)
 
@@ -43,9 +43,7 @@ function extract_articles_metadata()
                     else
                         df_dict[:reviewer_name] = nothing
                     end
-                
 
-                
                 elseif key.first == :language
                     lang =  key.second.languages
                     df_dict["language"] = lang
@@ -64,7 +62,7 @@ function extract_articles_metadata()
                     end
 
                 elseif key.first == :msc
-                    df_dict[:msc] = nothing
+                    df_dict[:msc] = string(key.second)
                 
                 elseif key.first == :references
                     if key.second != []
@@ -115,7 +113,6 @@ end
 
 function dict_list_to_df(dict_list)
     df = DataFrame()
-    #clean_dict_list = []
     for d in dict_list
         help_dict = Dict()
         for key in d
@@ -130,11 +127,14 @@ function dict_list_to_df(dict_list)
             end    
         end
         row = DataFrame(help_dict)
+        if names(row) != ["author_name", "database", "datestamp", "document_type", "doi", "id", "identifier", "keywords", "language", "msc", "ref_dois", "reviewer_name", "subtitle", "text", "title", "year", "zbmath_url"]
+            continue
+        end
         append!(df, row)        
     end
     println(names(df))
     println(size(df))
-
+    CSV.write("articles_data/full_df.csv",df)
 end
 
 dict_list = extract_articles_metadata()
