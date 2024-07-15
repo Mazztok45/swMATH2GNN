@@ -8,6 +8,7 @@ using LinearAlgebra
 using MetaGraphsNext
 using Compose
 import Cairo, Fontconfig
+using GLMakie, SGtSNEpi, SNAPDatasets
 
 function extract_metadata()
 
@@ -80,8 +81,18 @@ function create_metagraph()
 
         end
     end
+    
     println("created edges!")
-    draw(PNG("software_rel.png", 16cm, 16cm), gplot(software_rel, layout=spectral_layout))
+    GLMakie.activate!()
+    y = sgtsnepi(g);
+    draw(PNG("software_rel.png", 20cm, 20cm), 
+        show_embedding(y;
+            A = adjacency_matrix(g),        # show edges on embedding
+            mrk_size = 1,                   # control node sizes
+            lwd_in = 0.01, lwd_out = 0.001, # control edge widths
+            edge_alpha = 0.03 ))
+    
+    #draw(PNG("software_rel.png", 20cm, 20cm), gplot(software_rel, layout=spectral_layout))
     return software_rel
 end
 
