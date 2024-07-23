@@ -1,8 +1,8 @@
 import pandas as pd
-#from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv
 from torch_geometric.data import HeteroData
 import torch
-#import torch.nn.functional as F
+import torch.nn.functional as F
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import itertools
