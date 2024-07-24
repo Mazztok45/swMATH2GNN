@@ -4,7 +4,7 @@ using JSONTables
 using CSV
 using StructTypes
 
-
+"""
 struct Reviewer
     author_code::Union{Nothing, String}
     reviewer_id::Union{Nothing, String}
@@ -128,23 +128,24 @@ struct JSONStructure
 end
 
 StructTypes.StructType(::Type{JSONStructure}) = StructTypes.Struct()
-
+"""
 ##
 function extract_articles_metadata()
-    files = readdir("articles_data/articles_metadata_collection")
+    files = readdir("../articles_data/articles_metadata_collection")
     df_list = []
     for file in files
-        file_name = string("articles_data/articles_metadata_collection/", file)
-        #println(file_name)
+        file_name = string("../articles_data/articles_metadata_collection/", file)
+        println(file)
         json_string =read(file_name)
         #println(json_string)
-        json_file = JSON3.read(json_string, JSONStructure)
+        json_file = JSON3.read(json_string)
 
 
         result = json_file.result
         selected_vars = [:contributors, :database, :datestamp, :document_type, :editorial_contributions,
         :id, :identifier, :keywords, :language, :links, :msc, :references,  :title,
         :year, :zbmath_url]
+        
         for item in result    
             df_dict = Dict()
             for key in item
@@ -197,22 +198,21 @@ function extract_articles_metadata()
                 
                 elseif key.first == :references
                     if key.second != []
-                        ref_dois = []
+                        ref_ids = []
                         for ref in key.second
-                            ref_doi = ref.doi
-                            if ref_doi == nothing
-                                continue                        
-                            elseif startswith(ref_doi, "zbMATH Open Web Interface contents unavailable")
-                                continue
+                            ref_id = ref.zbmath.document_id
+                            if ref_id == nothing
+                                continue                    
+                            
                             else
-                                ref = ref_doi
+                                ref = ref_id
                             end
-                            push!(ref_dois, ref)
+                            push!(ref_ids, ref)
                         end
                     else
-                        ref_dois = nothing
+                        ref_ids = nothing
                     end
-                    df_dict[:ref_dois] = ref_dois
+                    df_dict[:ref_ids] = ref_ids
                 
                 
                 elseif key.first == :title
@@ -258,14 +258,14 @@ function dict_list_to_df(dict_list)
             end    
         end
         row = DataFrame(help_dict)
-        if names(row) != ["author_name", "database", "datestamp", "document_type", "doi", "id", "identifier", "keywords", "language", "msc", "ref_dois", "reviewer_name", "subtitle", "text", "title", "year", "zbmath_url"]
+        if names(row) != ["author_name", "database", "datestamp", "document_type", "doi", "id", "identifier", "keywords", "language", "msc", "ref_ids", "reviewer_name", "subtitle", "text", "title", "year", "zbmath_url"]
             continue
         end
         append!(df, row)        
     end
     println(names(df))
     println(size(df))
-    CSV.write("articles_data/full_df.csv",df)
+    CSV.write("../articles_data/full_df.csv",df)
 end
 
 dict_list = extract_articles_metadata()
