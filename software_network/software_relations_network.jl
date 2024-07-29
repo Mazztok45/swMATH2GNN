@@ -98,5 +98,4 @@ end
 
 software_rel = create_metagraph()
 
-# TODO: -try out with big Dataset
-#       - find a way to display & save the graph
+

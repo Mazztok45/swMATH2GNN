@@ -24,6 +24,7 @@ def preprocess_heterodata(articles_dict, software_dict):
     data['article', 'references', 'article'].edge_index = article_edges
 
     data = T.ToUndirected()(data)
+    print("Built HeteroData Dataset")
     return data
 
 
@@ -118,8 +119,9 @@ def create_edge_index(edge_dict):
 
     for source, targets in edge_dict.items():
         for target in targets:
-            source_indices.append(source)
-            target_indices.append(target)
+            if target in edge_dict.keys():
+                source_indices.append(source)
+                target_indices.append(target)
 
     source_tensor = torch.tensor(source_indices, dtype=torch.long)
     target_tensor = torch.tensor(target_indices, dtype=torch.long)

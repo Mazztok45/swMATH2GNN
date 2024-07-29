@@ -13,9 +13,6 @@ software_dict = software_df.to_dict()
 
 data = preprocess_heterodata(articles_dict=articles_dict, software_dict=software_dict)
 
-print(data)
-
-
 class HeteroGNN(Module):
     def __init__(self, metadata, hidden_channels, out_channels):
         super(HeteroGNN, self).__init__()
@@ -54,10 +51,7 @@ transform = T.RandomLinkSplit(
 
 metadata = data.metadata()
 model = HeteroGNN(metadata, hidden_channels=32, out_channels=32)
-print(model)
 train_data, val_data, test_data = transform(data)
-print("Trainig: ", train_data)
-print("val: ", val_data)
-print("test: ", test_data)
+
 
 
