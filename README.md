@@ -22,7 +22,8 @@ I build a simple network for the  relations between the software in Julia. It wa
 in the end, because I switched to python
 
 ### GNN
-I decided to work in python for this task, because it is more advanced in this topic
+I decided to work in python for this task, because it is more advanced in this topic.
+
 In hetero_data.py I preprocessed the data into a HeteroData object.
 The nodes are software and article.
 There are edges between the software nodes, based on the 'related_software' information in the dataset.
