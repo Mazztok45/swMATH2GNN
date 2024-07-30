@@ -4,133 +4,13 @@ using JSONTables
 using CSV
 using StructTypes
 
-"""
-struct Reviewer
-    author_code::Union{Nothing, String}
-    reviewer_id::Union{Nothing, String}
-    name::Union{Nothing, String}
-    sign::Union{Nothing, String}
-end
-
-struct EditorialContribution
-    language::String
-    reviewer::Reviewer
-    text::String
-    contribution_type::String
-end
-
-struct DocumentType
-    code::String
-    description::String
-end
-
-struct Author
-    aliases::Vector{String}
-    checked::String
-    codes::Vector{String}
-    name::String
-end
-
-struct Contributors
-    authors::Vector{Author}
-    author_references::Vector{Any}
-    editors::Vector{Any}
-end
-
-struct Language
-    languages::Vector{String}
-    addition::Vector{Union{Nothing, String}}
-end
-
-struct Link
-    identifier::String
-    type::String
-    url::Union{Nothing, String}
-end
-
-struct Msc
-    code::String
-    scheme::String
-    text::String
-end
-
-struct Issn
-    number::String
-    type::String
-end
-
-struct Series
-    acronym::Union{Nothing, String}
-    issn::Vector{Issn}
-    issue::Union{Nothing, String}
-    issue_id::Int
-    parallel_title::Union{Nothing, String}
-    part::Union{Nothing, String}
-    publisher::String
-    series_id::Int
-    short_title::String
-    title::String
-    volume::String
-    year::String
-end
-
-struct Source
-    book::Vector{Any}
-    pages::String
-    series::Vector{Series}
-    source::String
-end
-
-struct Title
-    addition::Union{Nothing, String}
-    original::Union{Nothing, String}
-    subtitle::Union{Nothing, String}
-    title::String
-end
-
-struct Result
-    biographic_references::Vector{Any}
-    contributors::Contributors
-    database::String
-    datestamp::String
-    document_type::DocumentType
-    editorial_contributions::Vector{EditorialContribution}
-    id::Int
-    identifier::String
-    keywords::Vector{Union{Nothing, String}}
-    language::Language
-    license::Vector{Any}
-    links::Vector{Link}
-    msc::Vector{Msc}
-    references::Vector{Any}
-    source::Source
-    states::Vector{Vector{String}}
-    title::Title
-    year::String
-    zbmath_url::String
-end
-
-struct Status
-    execution::String
-    execution_bool::Bool
-    internal_code::String
-    last_id::Union{Nothing, String}
-    nr_total_results::Int
-    nr_request_results::Int
-    query_execution_time_in_seconds::Float64
-    status_code::Int
-    time_stamp::String
-end
-
-struct JSONStructure
-    result::Vector{Result}
-    status::Status
-end
-
-StructTypes.StructType(::Type{JSONStructure}) = StructTypes.Struct()
-"""
-##
 function extract_articles_metadata()
+    #=
+    This function gets .json files from the directory
+    return list of dictionaries with the keys :author_name, :database, :datestamp, :document_type,
+    :doi, :id, :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name, :subtitle, :text,
+    :title, :year, :zbmath_url
+    =#
     files = readdir("../articles_data/articles_metadata_collection")
     df_list = []
     for file in files
@@ -149,6 +29,8 @@ function extract_articles_metadata()
         for item in result    
             df_dict = Dict()
             for key in item
+                # Create unnested lists with necessary information from the nested json
+                # if value not available from API, save as "Not available"
                 if key.first == :contributors
                     contrib = key.second
                     authors = contrib.authors
@@ -227,7 +109,7 @@ function extract_articles_metadata()
                     end
                     df_dict[:subtitle] = subtitle
                 
-                # else, all the keys that are not nested
+                # Create dictionary items for all keys that are not nested
                 elseif in(key.first, selected_vars)
                     df_dict[key.first] = key.second 
                 end
@@ -240,9 +122,12 @@ function extract_articles_metadata()
 end
 
 
-# TODO: language, keywords "not available" solution
-
 function dict_list_to_df(dict_list)
+    #=
+    Gets dict_list from function before
+    creates DataFrame from it
+    saves as .csv file
+    =#
     df = DataFrame()
     for d in dict_list
         help_dict = Dict()
