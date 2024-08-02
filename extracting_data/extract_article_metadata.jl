@@ -11,111 +11,113 @@ function extract_articles_metadata()
     :doi, :id, :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name, :subtitle, :text,
     :title, :year, :zbmath_url
     =#
-    files = readdir("../articles_data/articles_metadata_collection")
+    files = readdir("./articles_metadata_collection")
     df_list = []
     for file in files
-        file_name = string("../articles_data/articles_metadata_collection/", file)
-        println(file)
-        json_string =read(file_name)
-        #println(json_string)
-        json_file = JSON3.read(json_string)
+        if endswith(file,".json")
+            file_name = string("./articles_metadata_collection/", file)
+            println(file)
+            json_string =read(file_name)
+            #println(json_string)
+            json_file = JSON3.read(json_string)
 
 
-        result = json_file.result
-        selected_vars = [:contributors, :database, :datestamp, :document_type, :editorial_contributions,
-        :id, :identifier, :keywords, :language, :links, :msc, :references,  :title,
-        :year, :zbmath_url]
-        
-        for item in result    
-            df_dict = Dict()
-            for key in item
-                # Create unnested lists with necessary information from the nested json
-                # if value not available from API, save as "Not available"
-                if key.first == :contributors
-                    contrib = key.second
-                    authors = contrib.authors
-                    author_names = []
-                    for author in authors
-                        name = author.name
-                        if startswith(name, "zbMATH Open Web Interface contents unavailable")
-                            name = "Not available"
-                        end
-                        push!(author_names, name)
-                    end
-                    df_dict[:author_name] = author_names
-                
-                elseif key.first == :document_type
-                    doc_type = key.second.description
-                    df_dict[:document_type] = doc_type
-
-                elseif key.first == :editorial_contributions
-                    if key.second != []
-                        text = key.second[1].text
-                        df_dict[:text] = text
-                        reviewer_name = key.second[1].reviewer.name
-                        df_dict[:reviewer_name] = reviewer_name
-                    else
-                        df_dict[:reviewer_name] = nothing
-                    end
-
-                elseif key.first == :language
-                    lang =  key.second.languages
-                    df_dict["language"] = lang
-                
-                elseif key.first == :links
-                    if key.second != []
-                        ident = key.second[1].identifier
-                        if ident == nothing
-                            doi = nothing
-                        else
-                            doi = "https://doi.org/" * ident
-                        end
-                        df_dict[:doi] = doi
-                    else
-                        df_dict[:doi] = nothing
-                    end
-
-                elseif key.first == :msc
-                    df_dict[:msc] = string(key.second)
-                
-                elseif key.first == :references
-                    if key.second != []
-                        ref_ids = []
-                        for ref in key.second
-                            ref_id = ref.zbmath.document_id
-                            if ref_id == nothing
-                                continue                    
-                            
-                            else
-                                ref = ref_id
+            result = json_file.result
+            selected_vars = [:contributors, :database, :datestamp, :document_type, :editorial_contributions,
+            :id, :identifier, :keywords, :language, :links, :msc, :references,  :title,
+            :year, :zbmath_url]
+            
+            for item in result    
+                df_dict = Dict()
+                for key in item
+                    # Create unnested lists with necessary information from the nested json
+                    # if value not available from API, save as "Not available"
+                    if key.first == :contributors
+                        contrib = key.second
+                        authors = contrib.authors
+                        author_names = []
+                        for author in authors
+                            name = author.name
+                            if startswith(name, "zbMATH Open Web Interface contents unavailable")
+                                name = "Not available"
                             end
-                            push!(ref_ids, ref)
+                            push!(author_names, name)
                         end
-                    else
-                        ref_ids = nothing
+                        df_dict[:author_name] = author_names
+                    
+                    elseif key.first == :document_type
+                        doc_type = key.second.description
+                        df_dict[:document_type] = doc_type
+
+                    elseif key.first == :editorial_contributions
+                        if key.second != []
+                            text = key.second[1].text
+                            df_dict[:text] = text
+                            reviewer_name = key.second[1].reviewer.name
+                            df_dict[:reviewer_name] = reviewer_name
+                        else
+                            df_dict[:reviewer_name] = nothing
+                        end
+
+                    elseif key.first == :language
+                        lang =  key.second.languages
+                        df_dict["language"] = lang
+                    
+                    elseif key.first == :links
+                        if key.second != []
+                            ident = key.second[1].identifier
+                            if ident == nothing
+                                doi = nothing
+                            else
+                                doi = "https://doi.org/" * ident
+                            end
+                            df_dict[:doi] = doi
+                        else
+                            df_dict[:doi] = nothing
+                        end
+
+                    elseif key.first == :msc
+                        df_dict[:msc] = string(key.second)
+                    
+                    elseif key.first == :references
+                        if key.second != []
+                            ref_ids = []
+                            for ref in key.second
+                                ref_id = ref.zbmath.document_id
+                                if ref_id == nothing
+                                    continue                    
+                                
+                                else
+                                    ref = ref_id
+                                end
+                                push!(ref_ids, ref)
+                            end
+                        else
+                            ref_ids = nothing
+                        end
+                        df_dict[:ref_ids] = ref_ids
+                    
+                    
+                    elseif key.first == :title
+                        title = key.second.title
+                        if title != nothing && startswith(title, "zbMATH Open Web Interface contents unavailable")       
+                            title = "Not available"
+                        end
+                        df_dict[:title] = title
+                        subtitle = key.second.subtitle
+                        if subtitle != nothing && startswith(subtitle, "zbMATH Open Web Interface contents unavailable")
+                            subtitle = "Not available"
+                        end
+                        df_dict[:subtitle] = subtitle
+                    
+                    # Create dictionary items for all keys that are not nested
+                    elseif in(key.first, selected_vars)
+                        df_dict[key.first] = key.second 
                     end
-                    df_dict[:ref_ids] = ref_ids
-                
-                
-                elseif key.first == :title
-                    title = key.second.title
-                    if title != nothing && startswith(title, "zbMATH Open Web Interface contents unavailable")       
-                        title = "Not available"
-                    end
-                    df_dict[:title] = title
-                    subtitle = key.second.subtitle
-                    if subtitle != nothing && startswith(subtitle, "zbMATH Open Web Interface contents unavailable")
-                        subtitle = "Not available"
-                    end
-                    df_dict[:subtitle] = subtitle
-                
-                # Create dictionary items for all keys that are not nested
-                elseif in(key.first, selected_vars)
-                    df_dict[key.first] = key.second 
+                    
                 end
-                
+                push!(df_list, df_dict)
             end
-            push!(df_list, df_dict)
         end
     end
     return df_list 
@@ -150,7 +152,7 @@ function dict_list_to_df(dict_list)
     end
     println(names(df))
     println(size(df))
-    CSV.write("../articles_data/full_df.csv",df)
+    CSV.write("./articles_metadata_collection/full_df.csv",df)
 end
 
 dict_list = extract_articles_metadata()
