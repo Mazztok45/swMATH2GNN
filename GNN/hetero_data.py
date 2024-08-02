@@ -4,6 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 import torch_geometric.transforms as T
 import scipy
+import dask.array as da
 
 def preprocess_heterodata(articles_dict, software_dict):
     """
@@ -70,18 +71,22 @@ def keywords_vocabulary(articles_dict, software_dict):
     vectorizer = TfidfVectorizer(max_features=15000)
 
     all_features = vectorizer.fit(all_keywords)
-    software_features = vectorizer.transform(software_keywords).toarray()
-    articles_features = vectorizer.transform(articles_keywords).toarray()
+    software_features = vectorizer.fit_transform(software_keywords).toarray()
+    articles_features = vectorizer.fit_transform(articles_keywords).toarray()
+
+    # Convert the sparse matrix to a Dask array
+    articles_features_dask = da.from_array(articles_features.toarray(), chunks=(1000, 15000))
 
     # Articles features dimensionality reduction
     pca = PCA(n_components=5000)
-    articles_features_dense = articles_features.toarray()
+    articles_features_dense = articles_features_dask.toarray()
     articles_features_reduced = pca.fit_transform(articles_features_dense)
     articles_features_reduced_sparse = sparse.csr_matrix(articles_features_reduced)
     article_features = articles_features_reduced_sparse
 
+    software_features_dask = da.from_array(software_features.toarray(), chunks=(1000, 15000))
     # Software features dimensionality reduction
-    software_features_dense = software_features.toarray()
+    software_features_dense = software_features_dask.toarray()
     software_features_reduced = pca.fit_transform(software_features_dense)
     software_features_reduced_sparse = sparse.csr_matrix(software_features_reduced)
     software_features = software_features_reduced_sparse
