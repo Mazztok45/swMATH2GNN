@@ -3,7 +3,8 @@ import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 import torch_geometric.transforms as T
-
+import scipy
+import dask.array as da
 
 def preprocess_heterodata(articles_dict, software_dict):
     """py
@@ -70,9 +71,25 @@ def keywords_vocabulary(articles_dict, software_dict):
     vectorizer = TfidfVectorizer(max_features=15000)
 
     all_features = vectorizer.fit(all_keywords)
-    software_features = vectorizer.transform(software_keywords).toarray()
-    article_features = vectorizer.transform(articles_keywords).toarray()
+    software_features = vectorizer.fit_transform(software_keywords).toarray()
+    articles_features = vectorizer.fit_transform(articles_keywords).toarray()
 
+    # Convert the sparse matrix to a Dask array
+    articles_features_dask = da.from_array(articles_features.toarray(), chunks=(1000, 15000))
+
+    # Articles features dimensionality reduction
+    pca = PCA(n_components=5000)
+    articles_features_dense = articles_features_dask.toarray()
+    articles_features_reduced = pca.fit_transform(articles_features_dense)
+    articles_features_reduced_sparse = sparse.csr_matrix(articles_features_reduced)
+    article_features = articles_features_reduced_sparse
+
+    software_features_dask = da.from_array(software_features.toarray(), chunks=(1000, 15000))
+    # Software features dimensionality reduction
+    software_features_dense = software_features_dask.toarray()
+    software_features_reduced = pca.fit_transform(software_features_dense)
+    software_features_reduced_sparse = sparse.csr_matrix(software_features_reduced)
+    software_features = software_features_reduced_sparse
     return article_features, software_features
 
 
@@ -161,7 +178,10 @@ def ids_mapping(mapping_dict):
 
 def create_edge_index(edge_dict, mapped_dict):
     """
-    The function that actually creates the edge_index (for less code repition)
+    The Approximate Algorithm for Set Cover Problem
+Last Updated : 14 Jun, 2023
+
+Given a universe U of n elements, a collection of subsets of U say S = {S1, S2…,Sm} where every subset Si has function that actually creates the edge_index (for less code repition)
     :param edge_dict: The dict that holds the information on the edges
     :param mapped_dict: the mapped ids from database ids to dataset indecies
     :return: edge_index for the certain edge
