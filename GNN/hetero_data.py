@@ -3,7 +3,7 @@ import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 import torch_geometric.transforms as T
-
+import scipy
 
 def preprocess_heterodata(articles_dict, software_dict):
     """
@@ -71,8 +71,20 @@ def keywords_vocabulary(articles_dict, software_dict):
 
     all_features = vectorizer.fit(all_keywords)
     software_features = vectorizer.transform(software_keywords).toarray()
-    article_features = vectorizer.transform(articles_keywords).toarray()
+    articles_features = vectorizer.transform(articles_keywords).toarray()
 
+    # Articles features dimensionality reduction
+    pca = PCA(n_components=5000)
+    articles_features_dense = articles_features.toarray()
+    articles_features_reduced = pca.fit_transform(articles_features_dense)
+    articles_features_reduced_sparse = sparse.csr_matrix(articles_features_reduced)
+    article_features = articles_features_reduced_sparse
+
+    # Software features dimensionality reduction
+    software_features_dense = software_features.toarray()
+    software_features_reduced = pca.fit_transform(software_features_dense)
+    software_features_reduced_sparse = sparse.csr_matrix(software_features_reduced)
+    software_features = software_features_reduced_sparse
     return article_features, software_features
 
 
