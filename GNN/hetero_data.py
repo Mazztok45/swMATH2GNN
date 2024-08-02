@@ -6,7 +6,7 @@ import torch_geometric.transforms as T
 
 
 def preprocess_heterodata(articles_dict, software_dict):
-    """
+    """py
 
     :param articles_dict: Dictionary made from articles_data/full_df.csv
     :param software_dict: Dictionary made from data/full_df.csv
