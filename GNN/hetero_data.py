@@ -161,7 +161,10 @@ def ids_mapping(mapping_dict):
 
 def create_edge_index(edge_dict, mapped_dict):
     """
-    The function that actually creates the edge_index (for less code repition)
+    The Approximate Algorithm for Set Cover Problem
+Last Updated : 14 Jun, 2023
+
+Given a universe U of n elements, a collection of subsets of U say S = {S1, S2…,Sm} where every subset Si has function that actually creates the edge_index (for less code repition)
     :param edge_dict: The dict that holds the information on the edges
     :param mapped_dict: the mapped ids from database ids to dataset indecies
     :return: edge_index for the certain edge

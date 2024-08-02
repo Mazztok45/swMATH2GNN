@@ -5,7 +5,7 @@ import torch_geometric.transforms as T
 
 
 # Read the dfs into framework
-articles_df = pd.read_csv('../articles_data/full_df.csv')
+articles_df = pd.read_csv('../articles_metadata_collection/full_df.csv')
 articles_dict = articles_df.to_dict()
 software_df = pd.read_csv('../data/full_df.csv')
 software_dict = software_df.to_dict()
