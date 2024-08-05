@@ -1,11 +1,11 @@
-module HeteroData
-
 using TextAnalysis
 using MultivariateStats
 using SparseArrays
 using DataFrames
 using LightGraphs
 using GraphPlot
+
+module HeteroData
 
 export preprocess_heterodata, keywords_vocabulary, software_to_software_edges, software_to_articles_edges, article_to_article_edges, ids_mapping, create_edge_index
 
@@ -73,21 +73,25 @@ function keywords_vocabulary(articles_dict, software_dict)
 
     # Split the tfidf_matrix
     num_software = length(software_keywords)
-
     software_features = tfidf_matrix[1:num_software, :]
     articles_features = tfidf_matrix[num_software+1:end, :]
+
+    # Ensure the matrices are correctly formed
+    println("software_features size: ", size(software_features))
+    println("articles_features size: ", size(articles_features))
 
     # Convert sparse matrices to dense matrices for KernelPCA
     software_features_dense = Array(software_features)
     articles_features_dense = Array(articles_features)
-    
+
     # Concatenate the dense matrices vertically
     all_features_dense = vcat(software_features_dense, articles_features_dense)
+    println("all_features_dense size: ", size(all_features_dense))
 
     println("Applying KernelPCA")  # Debug print
     try
         # Apply KernelPCA for dimensionality reduction
-        kpca = fit(KernelPCA, all_features_dense, maxoutdim=5000, kernel=(X, Y) -> X * Y')
+        kpca = fit(KernelPCA, all_features_dense; maxoutdim=5000, kernel=(X, Y) -> X * Y')
 
         software_features_reduced = MultivariateStats.transform(kpca, software_features_dense)
         articles_features_reduced = MultivariateStats.transform(kpca, articles_features_dense)
@@ -179,6 +183,8 @@ end # module HeteroData
 
 # Example usage for debugging
 if abspath(PROGRAM_FILE) == @__FILE__
+    using .HeteroData
+
     articles_dict = Dict("keywords" => ["Python; data science", "machine learning; AI"], "id" => Dict(1 => 1001, 2 => 1002), "ref_ids" => Dict(1 => "2", 2 => "1"))
     software_dict = Dict("keywords" => ["Python; library", "machine learning; tool"], "id" => Dict(1 => 2001, 2 => 2002), "related_software" => Dict(1 => "2", 2 => "1"), "standard_articles" => Dict(1 => "1", 2 => "2"))
 
