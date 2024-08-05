@@ -23,7 +23,7 @@ for file in json_files
             temp_dict = copy(json_file[k])
             for var in selected_vars
                 # convert nothing (nan) values to strings
-                if temp_dict[var] == nothing
+                if temp_dict[var] === nothing
                     temp_dict[var] = string()
                 end
                 # convert lists to strings with ; in between values

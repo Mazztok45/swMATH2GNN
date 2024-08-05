@@ -66,7 +66,7 @@ function extract_articles_metadata()
                     elseif key.first == :links
                         if key.second != []
                             ident = key.second[1].identifier
-                            if ident == nothing
+                            if ident === nothing
                                 doi = nothing
                             else
                                 doi = "https://doi.org/" * ident
@@ -84,7 +84,7 @@ function extract_articles_metadata()
                             ref_ids = []
                             for ref in key.second
                                 ref_id = ref.zbmath.document_id
-                                if ref_id == nothing
+                                if ref_id === nothing
                                     continue                    
                                 
                                 else
@@ -100,12 +100,12 @@ function extract_articles_metadata()
                     
                     elseif key.first == :title
                         title = key.second.title
-                        if title != nothing && startswith(title, "zbMATH Open Web Interface contents unavailable")       
+                        if title !== nothing && startswith(title, "zbMATH Open Web Interface contents unavailable")       
                             title = "Not available"
                         end
                         df_dict[:title] = title
                         subtitle = key.second.subtitle
-                        if subtitle != nothing && startswith(subtitle, "zbMATH Open Web Interface contents unavailable")
+                        if subtitle !== nothing && startswith(subtitle, "zbMATH Open Web Interface contents unavailable")
                             subtitle = "Not available"
                         end
                         df_dict[:subtitle] = subtitle
@@ -138,7 +138,7 @@ function dict_list_to_df(dict_list)
             second = key.second
             if second isa Array || second isa JSON3.Array
                 help_dict[first] = join(second, "; ")
-            elseif second == nothing
+            elseif second === nothing
                 help_dict[first] = string()
             else
                 help_dict[first] = string(second)

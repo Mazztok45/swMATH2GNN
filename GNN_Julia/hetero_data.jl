@@ -1,43 +1,50 @@
+module HeteroData
+
 using TextAnalysis
 using MultivariateStats
 using SparseArrays
 using DataFrames
 using LightGraphs
 using GraphPlot
-module HeteroData
 
-export preprocess_heterodata, keywords_vocabulary, software_to_software_edges, software_to_articles_edges, article_to_article_edges, article_to_article_edges,ids_mapping,create_edge_index
-# Sample DataFrames (replace with actual data loading)
-#articles_dict = Dict("keywords" => ["Python", "orms"], "id" => Dict(1 => 1001, 2 => 1002),"ref_ids" => Dict(1 => "2", 2 => "1"))
-#software_dict = Dict("keywords" => ["Python", "orms"],"id" => Dict(1 => 2001, 2 => 2002),"related_software" => Dict(1 => "2", 2 => "1"),"standard_articles" => Dict(1 => "1", 2 => "2"))
+export preprocess_heterodata, keywords_vocabulary, software_to_software_edges, software_to_articles_edges, article_to_article_edges, ids_mapping, create_edge_index
 
 function preprocess_heterodata(articles_dict, software_dict)
     data = Dict()
+    println("Preprocessing started")  # Debug print
 
-    # Create nodes for all articles and software with features from the called function
-    articles_features, software_features = keywords_vocabulary(articles_dict, software_dict)
-    data["article"] = articles_features
-    data["software"] = software_features
+    try
+        # Create nodes for all articles and software with features from the called function
+        articles_features, software_features = keywords_vocabulary(articles_dict, software_dict)
+        data["article"] = articles_features
+        data["software"] = software_features
+        println("Features extracted")  # Debug print
 
-    # Create edges between software
-    software_edges = software_to_software_edges(software_dict)
-    data["software_edges"] = software_edges
+        # Create edges between software
+        software_edges = software_to_software_edges(software_dict)
+        data["software_edges"] = software_edges
 
-    # Create edges between software and articles
-    sof_art_edges = software_to_articles_edges(software_dict, articles_dict)
-    data["sof_art_edges"] = sof_art_edges
+        # Create edges between software and articles
+        sof_art_edges = software_to_articles_edges(software_dict, articles_dict)
+        data["sof_art_edges"] = sof_art_edges
 
-    # Create edges between articles
-    article_edges = article_to_article_edges(articles_dict)
-    data["article_edges"] = article_edges
+        # Create edges between articles
+        article_edges = article_to_article_edges(articles_dict)
+        data["article_edges"] = article_edges
 
-    println("Built HeteroData Dataset")
-    return data
+        println("Built HeteroData Dataset")  # Debug print
+        return data
+    catch e
+        println("Error in preprocess_heterodata: ", e)
+        throw(e)
+    end
 end
 
 function keywords_vocabulary(articles_dict, software_dict)
     software_keywords = String[]
     articles_keywords = String[]
+
+    println("Extracting keywords from articles")  # Debug print
     for value in values(articles_dict["keywords"])
         if isa(value, String)
             value = replace(value, ';' => ' ')
@@ -45,6 +52,7 @@ function keywords_vocabulary(articles_dict, software_dict)
         end
     end
 
+    println("Extracting keywords from software")  # Debug print
     for value in values(software_dict["keywords"])
         if isa(value, String)
             value = replace(value, ';' => ' ')
@@ -56,59 +64,39 @@ function keywords_vocabulary(articles_dict, software_dict)
 
     all_keywords = vcat(software_keywords, articles_keywords)
 
-    # Debug: Check all_keywords
-    #println("all_keywords: ", all_keywords)
-
     # Vectorize the keywords using TfIdf
     corpus = Corpus([StringDocument(doc) for doc in all_keywords])
-    #println("Corpus created: ", corpus)
-
-    # Create DocumentTermMatrix
     dtm = DocumentTermMatrix(corpus)
-    #println("DTM created: ", dtm)
-
     tfidf_matrix = tf_idf(dtm)
-    
-    # Debug: Check tfidf_matrix
-    #println("tfidf_matrix size: ", size(tfidf_matrix))
-    #println("tfidf_matrix type: ", typeof(tfidf_matrix))
-    #println("tfidf_matrix: ", tfidf_matrix)
+
+    println("TF-IDF matrix created")  # Debug print
 
     # Split the tfidf_matrix
     num_software = length(software_keywords)
-    num_articles = length(articles_keywords)
 
     software_features = tfidf_matrix[1:num_software, :]
     articles_features = tfidf_matrix[num_software+1:end, :]
 
-    # Debug: Check split matrices
-    #println("software_features size: ", size(software_features))
-    #println("articles_features size: ", size(articles_features))
-
     # Convert sparse matrices to dense matrices for KernelPCA
     software_features_dense = Array(software_features)
     articles_features_dense = Array(articles_features)
-
-    # Check types and shapes
-    #println("software_features_dense type: ", typeof(software_features_dense))
-    #println("articles_features_dense type: ", typeof(articles_features_dense))
-    #println("software_features_dense size: ", size(software_features_dense))
-    #println("articles_features_dense size: ", size(articles_features_dense))
-    create_edge_index
+    
     # Concatenate the dense matrices vertically
     all_features_dense = vcat(software_features_dense, articles_features_dense)
 
-    # Ensure all_features_dense is a simple 2D array
-    #println("all_features_dense type: ", typeof(all_features_dense))
-    #println("all_features_dense size: ", size(all_features_dense))
+    println("Applying KernelPCA")  # Debug print
+    try
+        # Apply KernelPCA for dimensionality reduction
+        kpca = fit(KernelPCA, all_features_dense, maxoutdim=5000, kernel=(X, Y) -> X * Y')
 
-    # Apply KernelPCA for dimensionality reduction
-    kpca = fit(KernelPCA, all_features_dense, maxoutdim=5000, kernel=(X, Y) -> X * Y')
+        software_features_reduced = MultivariateStats.transform(kpca, software_features_dense)
+        articles_features_reduced = MultivariateStats.transform(kpca, articles_features_dense)
 
-    software_features_reduced = MultivariateStats.transform(kpca, software_features_dense)
-    articles_features_reduced = MultivariateStats.transform(kpca, articles_features_dense)
-
-    return sparse(software_features_reduced), sparse(articles_features_reduced)
+        return sparse(software_features_reduced), sparse(articles_features_reduced)
+    catch e
+        println("Error in KernelPCA: ", e)
+        throw(e)
+    end
 end
 
 function software_to_software_edges(software_dict)
@@ -186,6 +174,14 @@ function create_edge_index(edge_dict, mapped_dict)
     edge_index = hcat(source_indices, target_indices)'
     return edge_index
 end
+
+end # module HeteroData
+
+# Example usage for debugging
+if abspath(PROGRAM_FILE) == @__FILE__
+    articles_dict = Dict("keywords" => ["Python; data science", "machine learning; AI"], "id" => Dict(1 => 1001, 2 => 1002), "ref_ids" => Dict(1 => "2", 2 => "1"))
+    software_dict = Dict("keywords" => ["Python; library", "machine learning; tool"], "id" => Dict(1 => 2001, 2 => 2002), "related_software" => Dict(1 => "2", 2 => "1"), "standard_articles" => Dict(1 => "1", 2 => "2"))
+
+    data = HeteroData.preprocess_heterodata(articles_dict, software_dict)
+    println(data)
 end
-# Example usage
-#data = preprocess_heterodata(articles_dict, software_dict)
