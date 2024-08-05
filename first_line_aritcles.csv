@@ -1,0 +1,684 @@
+author_name,database,datestamp,document_type,doi,id,identifier,keywords,language,msc,ref_ids,reviewer_name,subtitle,text,title,year,zbmath_url
+"Weilert, André",Zbl,0001-01-01T00:00:00Z,journal article,https://doi.org/10.1006/jsco.2000.0422,1570912,1053.11093,nothing,English,"JSON3.Object[{
+     ""code"": ""11Y16"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Number-theoretic algorithms; complexity""
+}, {
+     ""code"": ""68W40"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Analysis of algorithms""
+}]",918133; 3581610; 1170449; 3728392; 1186932; 3119278; 47996; 1263309; 3959562; 4125499; 4208194; 1052006; 3029478; 1313469; 3995051; 4108845; 3853202; 3985348; 194780; 4856; 3354613; 641702; 3354612; 558439; 3269479; 1186933; 1105952; 968647; 1643956,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,\((1+i)\)-ary GCD computation in \(\mathbb Z[i]\) as an analogue to the binary GCD algorithm.,2000,https://zbmath.org/1570912
+"Cesari, Giovanni",Zbl,0001-01-01T00:00:00Z,serial article,,1254036,923.68075,package of parallel algorithms; CALYPSO,English,"JSON3.Object[{
+     ""code"": ""68W30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Symbolic computation and algebraic computation""
+}]",,,,"Summary: We present a package of parallel algorithms for multiple precision arithmetic, implemented by using a message-passing model of computation. These algorithms are organized in an object oriented library and perform parallel arithmetic in \(Z\), \(Q\), and \(Z_p\).
+
+
+The library has a layered structure which provides portability and the possibility of extending the code easily. In the bottom layer we implement fundamental parallel algorithms which are machine dependent. Starting from integer multiplication, we developed different parallel Karatsuba-type and FFT-based schemes, including the integer 3-primes and floating-point FFT algorithms. These multiplication algorithms allowed us to design a parallel Newton method for division. Parallel algorithms for modular arithmetic result by using both Montgomery's and classical arithmetic.
+
+
+We designed these algorithms under a message-passing model of computation. These are implemented on different parallel platforms, targeting both distributed memory machines, such as massively parallel processing systems and networks of workstations, and shared memory architectures. We developed both architecture dependent and architecture independent algorithms by using standard interfaces such as the Message Passing Interface, MPI.
+
+
+On top of this layer we provide a convenient interface to the user which allows a sequential programming style, while each algorithm is executed in parallel. At this level it is possible for the user to implement high level parallel algorithms, such as the GCD, which are machine independent. 
+
+
+Finally we integrated our package in a computer algebra system, which uses a sequential frontend for interactive use, and a parllel backend for computation. 
+
+
+We have called this package CALYPSO, a sort of package acronym for Computer Algebra Library for Parallel Symbolic Computation.
+
+For the entire collection see [Zbl 0903.00086].",CALYPSO: A computer algebra library for parallel symbolic computation,1997,https://zbmath.org/1254036
+"Cesaratto, Eda; Clément, Julien; Daireaux, Benoît; Lhote, Loïck; Maume-Deschamps, Véronique; Vallée, Brigitte",Zbl,2009-06-18T11:36:42Z,journal article,https://doi.org/10.1016/j.jsc.2008.04.018,5566485,1179.11049,Euclid algorithm; divide and conquer algorithms; fast multiplication; analysis of algorithms; transfer operators; Perron formula,English,"JSON3.Object[{
+     ""code"": ""11Y16"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Number-theoretic algorithms; complexity""
+}, {
+     ""code"": ""37C30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Functional analytic techniques in dynamical systems; zeta functions, (Ruelle-Frobenius) transfer operators, etc.""
+}, {
+     ""code"": ""68W40"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Analysis of algorithms""
+}]",2120796; 2153786; 3581610; 1186932; 5050603; 2158026; 3328299; 1187682; 549646; 4012703; 5485323; 5485437; 3336026; 701297; 1199954; 1254004; 786280; 3303654; 3440002; 3029478; 5267047; 5345310; 4205458; 5216416; 3622081; 3354613; 2194094; 1626662; 1965333; 5054065,Jean-Paul Allouche,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Regularity of the Euclid algorithm; application to the analysis of fast GCD algorithms,2009,https://zbmath.org/5566485
+"Karl, Holger",Zbl,0001-01-01T00:00:00Z,serial article,,1630137,969.68507,clusters of workstations,English,"JSON3.Object[{
+     ""code"": ""68N19"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Other programming paradigms (object-oriented, sequential, concurrent, automatic, etc.)""
+}]",,,,"Summary: Clusters of workstations are an attractive environment for high performance computing. For some applications, however, clusters still lack certain properties. One such property is responsive (dependable and timely) execution of programs. This paper studies two mechanisms (checkpointing and replication) to improve the responsiveness (the probability of meeting a deadline in the presence of faults) of a parallel programming system, Calypso, by ameliorating a single point of failure of Calypso. Experiments show that checkpointing is a suitable tool to achieve high responsiveness and that already a very modest degree of replication is sufficient for improved responsiveness.
+
+For the entire collection see [Zbl 0934.00022].",Fault-tolerance mechanisms for a parallel programming system -- a responsiveness perspective,2000,https://zbmath.org/1630137
+"Tuchman, Allan; Cybenko, George; Jablonowski, David; Bliss, Brian; Sharma, Sanjay",Zbl,0001-01-01T00:00:00Z,serial article,,434599,800.68976,remote data visualization,English,"JSON3.Object[{
+     ""code"": ""68U05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computer graphics; computational geometry (digital and algorithmic aspects)""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Vista: A system for remote data visualization,1992,https://zbmath.org/434599
+"Tsay, Ruey S.",Zbl,2012-08-21T15:20:21Z,book / book article,,6069716,1279.91003,financial data; time series; volatility; forecasting; AR; MA; ARMA; GARCH models; value at risk; expected shortfall; high-frequency data; market microstructure; quantile regression,English,"JSON3.Object[{
+     ""code"": ""91-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to game theory, economics, and finance""
+}, {
+     ""code"": ""91G70"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Statistical methods; risk measures""
+}, {
+     ""code"": ""91-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to game theory, economics, and finance""
+}, {
+     ""code"": ""91B84"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Economic time series analysis""
+}, {
+     ""code"": ""62M10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Time series, auto-correlation, regression, etc. in statistics (GARCH)""
+}, {
+     ""code"": ""62P05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to actuarial sciences and financial mathematics""
+}]",,Małgorzata Doman,,"This book is thought as an introductory textbook for financial time series analysis. The idea of the author was to make the lecture as user-friendly as possible. The concepts of economic and statistical theory are presented in a simple and concise manner. The lecture focuses on practical aspects of financial data analysis. The objectives of the book expressed by the author are: to provide basic knowledge of financial time series, to introduce statistical tools for analyzing financial data, and to gain experience in financial applications. The book consists of seven chapters.
+
+Chapter 1 presents some basic concepts dealing with financial data (asset returns, bond yields and prices, implied volatility). Next, the R program is introduced and first applications of its packages are used to present some stylized facts about financial data and ways to visualize the data.
+
+Chapter 2 introduces basics of linear time series analysis. The importance of weak stationarity is pointed. Next the author discusses correlation and autocorrelation and the notion of linear time series. The autoregressive (AR), moving average (MA) and ARMA models are presented in detail. Some attention is paid to unit-root nonstationarity and long memory. The exponential smoothing as a method of forecasting is presented. Seasonal models and regression models with time series errors are briefly discussed. The last section of the chapter deals with model comparison and averaging.
+
+Chapter 3 includes three case studies of linear time series. An extensive analysis of weekly regular gasoline price, global temperature anomalies and the US monthly unemployment rates is presented. This chapter is especially useful for beginners in the subject, because it shows step by step the process of modeling the data.
+
+Chapter 4 addresses the problem of volatility measures and models. After describing the general structure of volatility models, the GARCH family is discussed quite extensively. The stochastic volatility models are mentioned. The chapter ends with information concerning the daily volatility measures based on intraday data.
+
+Chapter 5 shows some applications of such volatility models. The presented examples include the GARCH volatility term structure, option pricing and hedging, time varying betas and minimum variance portfolios.
+
+Chapter 6 deals with intraday data. First, some market microstructure effects and the specific properties of trading data are discussed. Next, the author presents models for price changes (ordered probit model and decomposition model) and autoregressive conditional duration (ACD models). More careful discussion on realized volatility and the methods of handling the microstructure noise from its estimates is performed.
+
+The subject of the last, seventh, chapter of the book is value at risk (VaR). The notion of coherence of risk measures is presented with VaR and expected shortfall serving as examples of non-coherent and coherent risk measures. Next, the RiskMetrics methodology is discussed in detail. Further, the author applies volatility models to calculate VaR. Quantile regression and extreme value theory are presented as tools for VaR estimation.
+
+Summarizing, this is an excellent textbook for an introductory but intensive course in financial econometrics, ready to use in teaching with no additional requirements and preparations. The theory is presented in simple, easy to understand way. Numerous examples illustrate well the practical aspects of financial time series analysis. The plots and demonstrations contained in the book make the modeling process and its results easy understandable. Most of the data used in the examples can be easily downloaded from open sources. The used software, the R packages, is free and works on most operating systems. Due to the combination of all these things, the book is useful if only the lecturer and students have computers and access to the internet. Even though the simplicity of the lecture, the book presents the most important topics in financial econometrics including new developments. All it makes the book extremely useful for teachers and students, and also for practitioners seeking for short path to financial data analysis and risk modeling.",An introduction to analysis of financial data with R.,2013,https://zbmath.org/6069716
+RESSTE Network; et al.,Zbl,2017-11-24T10:55:02Z,journal article,,6812419,1378.62139,space-time; covariance function; geostatistics; kriging; air pollution,English,"JSON3.Object[{
+     ""code"": ""62P12"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to environmental and related topics""
+}, {
+     ""code"": ""86A32"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Geostatistics""
+}, {
+     ""code"": ""62M40"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Random fields; image analysis""
+}, {
+     ""code"": ""62-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to statistics""
+}, {
+     ""code"": ""62-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to statistics""
+}]",,,,"Summary: We present an overview of (geo-)statistical models, methods and techniques for the analysis and prediction of continuous spatio-temporal processes residing in continuous space. Various approaches exist for building statistical models for such processes, estimating their parameters and performing predictions. We cover the Gaussian process approach, very common in spatial statistics and geostatistics, and we focus on R-based implementations of numerical procedures. To illustrate and compare the use of some of the most relevant packages, we treat a real-world application with high-dimensional data. The target variable is the daily mean PM\(_{10}\) concentration predicted thanks to a chemistry-transport model and observation series collected at monitoring stations across France in 2014. We give R code covering the full work-flow from importing data sets to the prediction of PM\(_{10}\) concentrations with a fitted parametric model, including the visualization of data, estimation of the parameters of the spatio-temporal covariance function and model selection. We conclude with some elements of comparison between the packages that are available today and some discussion for future developments.",Analyzing spatio-temporal data with R: everything you always wanted to know -- but were afraid to ask,2017,https://zbmath.org/6812419
+"Krauss, Christopher; Do, Xuan Anh; Huck, Nicolas",Zbl,2018-05-25T14:45:31Z,journal article,https://doi.org/10.1016/j.ejor.2016.10.031,6873630,1395.91514,finance; deep learning; gradient-boosting; random forests; ensemble learning,English,"JSON3.Object[{
+     ""code"": ""91G70"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Statistical methods; risk measures""
+}, {
+     ""code"": ""68T05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Learning and adaptive systems in artificial intelligence""
+}, {
+     ""code"": ""62P05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to actuarial sciences and financial mathematics""
+}, {
+     ""code"": ""62H30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Classification and discrimination; cluster analysis (statistical aspects)""
+}]",6591846; 5789665; 6260415; 1687841; 6979450; 1560499; 1079986; 1715471; 5492743; 6151863; 5772612; 6321963; 6378127,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"Deep neural networks, gradient-boosted trees, random forests: statistical arbitrage on the S\&P 500",2017,https://zbmath.org/6873630
+Not available; Not available; Not available; Not available,Zbl,2019-05-16T09:43:10Z,book / book article,https://doi.org/10.1007/978-3-319-89635-9,7055522,1412.62004,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to statistics""
+}, {
+     ""code"": ""62-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to statistics""
+}, {
+     ""code"": ""62H05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Characterization and structure theory for multivariate probability distributions; copulas""
+}, {
+     ""code"": ""62F10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Point estimation""
+}, {
+     ""code"": ""62G05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Nonparametric estimation""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2018,https://zbmath.org/7055522
+"Arratia, Argimiro",Zbl,2014-08-21T14:11:19Z,book / book article,https://doi.org/10.2991/978-94-6239-070-6,6333330,1309.91001,stocks; trade; price and indices; portfolios and collective investment; financial engineering; price and value of stocks; risk-neutral valuation principle; statistics of financial time series; correlations; causalities; time series models in finance; Brownian motion; Monte Carlo simulation; optimization heuristics in finance; portfolio optimization; outline finance,English,"JSON3.Object[{
+     ""code"": ""91-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to game theory, economics, and finance""
+}, {
+     ""code"": ""91G60"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical methods (including Monte Carlo methods)""
+}, {
+     ""code"": ""91-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to game theory, economics, and finance""
+}, {
+     ""code"": ""91-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to game theory, economics, and finance""
+}, {
+     ""code"": ""91G10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Portfolio theory""
+}, {
+     ""code"": ""91G20"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Derivative securities (option pricing, hedging, etc.)""
+}, {
+     ""code"": ""91G70"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Statistical methods; risk measures""
+}, {
+     ""code"": ""91B84"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Economic time series analysis""
+}, {
+     ""code"": ""62P05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to actuarial sciences and financial mathematics""
+}, {
+     ""code"": ""60H30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of stochastic analysis (to PDEs, etc.)""
+}, {
+     ""code"": ""65C05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Monte Carlo methods""
+}, {
+     ""code"": ""90C59"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Approximation methods and heuristics in mathematical programming""
+}, {
+     ""code"": ""90C90"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of mathematical programming""
+}]",,Vassil Grozdanov,,"Finance is about managing money. There are several instruments for dealing with money. There are mathematical models for the optimal selection of financial portfolios and for predicting their assets' future values. Also computers can help us with all the necessary real-world data crunching to exploit the formal models to unprecedented possibilities.
+
+The aim of this book is to give knowledge required for all numerical methods, theorems, algorithms and optimization heuristics geared to the solution of problems in economics and finance. Also the subject area includes the computational resolution of financial problems.
+
+Chapter 1 -- an arbidget introduction to finance -- is intended for giving the reader the minimum background on the fundamentals of finance. It is an outlook on the most common financial instruments and the places where these are traded. There is an introduction to investment strategies, portfolio management and basic asset pricing. Section 1.1 is devoted to the problems of financial securities. In Section 1.2, some notions, as a price and value of stocks, an arbitrage and risk-neutral valuation principle, European options, risk-neutral valuation, are presented and discussed. In Section 1.3 some remarks about \texttt{R} lab are given.
+
+In Chapter 2, the author briefly reviews some of the fundamental concepts of statistics, such as moments of a distribution, distribution and density functions, likelihood methods and other tools that are necessary for the analysis of returns and financial time series. In Section 2.1, the notions of time series of returns as simple returns, \(\tau\)-period simple gross returns, log returns, returns with dividends, excess returns are given and discussed. In Section 2.2, a series of distributions, as the normal distribution, distributions of financial returns, the log-normal distribution, the uniform distribution are presented and discussed. The central limit theorem is given. The concept of moments of a random variable is given. In Section 2.3, the notions of stationarity, covariance of two random variables and autocovariance are presented. In Section 2.4, the idea for designing models for predicting future values is developed. In Section 2.5, the idea for maximum likelihood methods, as a technique in statistics, is presented. In Section 2.6, the notions of volatility, scaling the volatility estimates and time dependent weighted volatility are developed. In Section 2.7, some \texttt{R} lab demonstrations for going some descriptive statistics of financial returns are presented.
+
+In Chapter 3, some correlations, causalities and similarities are considered. In Section 3.1, a series of correlations, as a measure of association, are considered. For example, the linear correlation and the rank correlation are developed. In Section 3.3, the notions of the causality as a Granger causality, nonparametric Granger causality are developed. In Section 3.3, the basics of data clustering, clustering methods, hierarchical clustering, partitional clustering and graph based clustering are presented. In Section 3.4, several empirical properties of asset returns using a variety of tools for statistical analysis are learned.
+
+Chapter 4 presents some basic discrete-time models for financial time series. In Section 4.1, some notes on trend and seasonality are presented. Section 4.2 is devoted to present linear processes and autoregressive moving average models. In Section 4.3, some nonlinear models as the autoregressive conditional heteroscedastic model of order \(p\) and the generalized autoregressive conditional heteroscedasticity model of order \(p\) are considered. In Section 4.4, two new nonlinear models as neural networks and support vector machines are developed and illustrated. In Section 4.5, tests for nonlinearity and tests of model performance are given.
+
+Chapter 5 presents Brownian motion, also known as Wiener process. On top of the Brownian motion other more elaborated continuous processes are built, that explain better the behavior of stock prices. Also, the geometric Brownian motion which is at the core of the Black-Scholes option pricing formula, is considered. In Section 5.1, a general review of continuous-time processes is presented. The concepts of the Wiener process, the generalized Wiener process or arithmetic Brownian motion are given. The Itō lemma for the geometric Brownian motion is proved. In Section 5.2, the Black-Scholes model for pricing European options is given and details of the binomial free option pricing model are presented. In Section 5.3, Monte Carlo variation of derivatives, as a numerical approach to valuing securities, is developed. The Euler-Monte Carlo method to calculate the European options with its convergence is given. Also, a Monte Carlo method to calculate the price of Asian options is given. In Section 5.4, some computer lab and problems are presented.
+
+In Chapter 6, two popular approaches, Technical analysis and Fundamental analysis, are considered to investment, although considered as opposite paradigms of financial engineering. In Section 6.1, the concept of Technical analysis with details as chats, support and resistance levels and trends is given. In Subsection 6.1.4, the mathematical foundation for Technical analysis is developed. Section 6.2 is devoted to Fundamental analysis. This chapter finishes with computer lab and problems.
+
+Chapter 7 considers algorithmic methods for finding approximate solutions of the basic optimization problem of minimizing or maximizing. In Section 7.2, the algorithm of the simulated annealing method is presented. In Section 7.3, the basics of genetic programming, as an extension of the genetic algorithm, is presented. Also, the algorithm for finding a technical trading rule is given. In Section 7.4, the ant colony optimization is described and presented as an algorithm. In Section 7.5, it is shown how to combine the individual heuristics to obtain hybrid heuristics. This chapter finishes again with computer lab and problems.
+
+Chapter 8 presents the Markowitz mean-variance model for portfolio optimization and some of tools for portfolio management such as Sharpe ratio, beta of a security and the Capital Asset Pricing Model. In Section 8.1, the details of the mean-variance model of Markowitz are presented. In Section 8.2, portfolios with a risk-free asset are considered. In Section 8.3, an optimization of portfolios under different constraint sets is developed. Also the algorithm for simulated annealing optimization of portfolios is given. Section 8.4 considers the problem of portfolio selection. This chapter finishes again with computer lab and problems.
+
+Chapter 9 presents some problems of online finance as online competitive analysis, online price search, searching for a price at random, online trading, online portfolio selection, the universal online portfolio and efficient universal online portfolio strategies. This chapter finishes again with computer lab and problems.
+
+In Appendix A a brief introduction to \texttt{R} is given. A list of available packages that extend \texttt{R} are presented.",Computational finance. An introductory course with R,2014,https://zbmath.org/6333330
+Not available; Not available; Not available,Zbl,2023-01-31T14:16:57Z,journal article,https://doi.org/10.1007/s00184-022-00860-7,7647744,1506.6234,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62J05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Linear regression; mixed models""
+}, {
+     ""code"": ""62J07"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Ridge regression; shrinkage estimators (Lasso)""
+}]",6470429; 5874490; 5582008; 5882801; 6165730; 2073059; 6193961; 3671397; 3194159; 6477031; 5661401; 5865454; 845714; 6872475; 6970948; 6549024; 6848865; 6787275; 850975; 5145624,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2023,https://zbmath.org/7647744
+Not available; Not available; Not available,Zbl,2019-09-26T09:59:08Z,journal article,https://doi.org/10.1080/14697688.2018.1521002,7110436,1420.91548,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""91G99"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Actuarial science and mathematical finance""
+}, {
+     ""code"": ""68T05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Learning and adaptive systems in artificial intelligence""
+}]",5789665; 5882392; 7013620; 6873630; 6410344; 6981179; 7013637; 7013646,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2019,https://zbmath.org/7110436
+Not available; Not available,Zbl,2019-02-06T11:04:59Z,journal article,https://doi.org/10.1080/14697688.2017.1417624,7013637,1406.91425,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""91G10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Portfolio theory""
+}, {
+     ""code"": ""60J75"",
+   ""scheme"": ""msc2010"",
+     ""text"": ""Jump processes""
+}]",5789665; 1963354; 6260415; 6714817; 811636; 5009958; 6459781; 6979450; 7001026; 5666935; 2108978; 5936950; 2237353; 6936467; 6976846; 6976846; 6073774; 7110436; 6873630; 6221230; 6981179; 2019689; 1558390; 6291826; 5258793; 1869269; 5347882; 5763869; 5319236; 7013646; 1813698; 6429536,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2018,https://zbmath.org/7013637
+Not available; Not available; Not available,Zbl,2019-02-06T11:04:59Z,journal article,https://doi.org/10.1080/14697688.2018.1438642,7013646,1407.62178,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62H05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Characterization and structure theory for multivariate probability distributions; copulas""
+}, {
+     ""code"": ""62P05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to actuarial sciences and financial mathematics""
+}]",5553072; 5789665; 6446852; 1829108; 6249104; 6017927; 6872264; 5080942; 6979450; 6210174; 6033263; 7665887; 6975312; 3942782; 5643222; 6449489; 679630; 1134711; 7110436; 2107365; 6873630; 5032455; 5017895; 6981276; 6554532; 2141387; 6981182; 5144926; 3163305; 6446516; 7013637; 6635773; 7002135; 6880307,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2018,https://zbmath.org/7013646
+"Imbert, Alyssa; Vialaneix, Nathalie",Zbl,2018-11-16T17:20:15Z,journal article,,6980773,1406.62104,missing data; imputation,French,"JSON3.Object[{
+     ""code"": ""62N01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Censored data models""
+}, {
+     ""code"": ""62-07"",
+   ""scheme"": ""msc2010"",
+     ""text"": ""Data analysis (statistics)""
+}]",,,,"Summary: Missing data is strongly connected to statistics that is concerned with the collect and pre-processing of data. In this article, we review the different methods that can be used to diagnose and impute missing data. We also present approaches aiming at evaluating the impact of imputation on subsequent analyses. Finally, we describe available implementations, in \texttt{R} packages, of the presented methods.","Exploring, handling, imputing and evaluating missing data in statistical analyses: a review of existing approaches",2018,https://zbmath.org/6980773
+"Howard, James P. II",Zbl,2017-05-17T13:32:20Z,book / book article,,6718348,1379.65001,R language; software; linear algebra; interpolation; numerical integration; root finding; optimisation; differential equations,English,"JSON3.Object[{
+     ""code"": ""65-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to numerical analysis""
+}, {
+     ""code"": ""68N15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Theory of programming languages""
+}, {
+     ""code"": ""65Y15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Packaged methods for numerical algorithms""
+}, {
+     ""code"": ""65Fxx"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical linear algebra""
+}, {
+     ""code"": ""65D05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical interpolation""
+}, {
+     ""code"": ""65D32"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical quadrature and cubature formulas""
+}, {
+     ""code"": ""65H05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical computation of solutions to single equations""
+}, {
+     ""code"": ""65K05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Numerical mathematical programming methods""
+}]",,Matti Vuorinen,,"The R language is a free software which during the past decade has become a popular tool in statistics and data science applications. Its power relies on the active user forum which provides a huge number of user contributed software packages for specific computational tasks. Also the software of this book is available in this way. The author says that the book is written for advanced undergraduate or first year graduate student as a collateral text for numerical analysis courses. The theoretical part of numerical analysis is mostly omitted, the focus is to present a working R code for many basic tasks of numerical computation including linear algebra, interpolation, numerical integration, root finding and optimisation and differential equations. The presentation is very clear and reader friendly.",Computational methods for numerical analysis with R,2017,https://zbmath.org/6718348
+"Wicke, Kristina; Fischer, Mareike",Zbl,2018-03-15T09:27:18Z,journal article,https://doi.org/10.1016/j.jtbi.2017.07.010,6850285,1382.92207,phylogenetic diversity; Shapley value; fair proportion index; ranking order; ultrametric; computation,English,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",6498042; 5312991; 6225309; 6643256,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Comparing the rankings obtained from two biodiversity indices: the fair proportion index and the Shapley value,2017,https://zbmath.org/6850285
+"Cybis, Gabriela B.; Sinsheimer, Janet S.; Bedford, Trevor; Mather, Alison E.; Lemey, Philippe; Suchard, Marc A.",Zbl,2015-10-28T16:28:01Z,journal article,https://doi.org/10.1214/15-AOAS821,6499939,1454.62324,Bayesian phylogenetics; threshold model; evolution; genotype-phenotype correlation,English,"JSON3.Object[{
+     ""code"": ""62P10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to biology and medical sciences; meta analysis""
+}]",5074264; 571517; 6499939; 3017431; 1773830,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Assessing phenotypic correlation through the multivariate phylogenetic latent liability model,2015,https://zbmath.org/6499939
+"Mitov, Venelin; Bartoszek, Krzysztof; Asimomitis, Georgios; Stadler, Tanja",Zbl,2020-01-23T17:17:08Z,journal article,https://doi.org/10.1016/j.tpb.2019.11.005,7157310,1516.92058,pruning; drift; selection; punctuated equilibrium; Lévy process; jumps,English,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}, {
+     ""code"": ""60J70"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of Brownian motions and diffusion theory (population genetics, absorption problems, etc.)""
+}, {
+     ""code"": ""60G51"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Processes with independent increments; Lévy processes""
+}]",6318925; 6946743; 6499939; 3323598; 6159604; 6507437; 6141538; 6991728,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Fast likelihood calculation for multivariate Gaussian phylogenetic models with shifts,2020,https://zbmath.org/7157310
+"Royer-Carenzi, Manuela; Didier, Gilles",Zbl,2016-09-05T11:50:29Z,journal article,https://doi.org/10.1016/j.jtbi.2016.05.029,6623171,1343.92367,ancestral state reconstruction; maximum likelihood; Brownian motion; energy distance,English,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}, {
+     ""code"": ""92B10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Taxonomy, cladistics, statistics in mathematical biology""
+}]",2169537; 3802727; 6143715; 1347994; 4102867; 6247814; 6785033,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,A comparison of ancestral state reconstruction methods for quantitative characters,2016,https://zbmath.org/6623171
+,Zbl,2017-01-20T15:57:23Z,book / book article,https://doi.org/10.1007/978-1-4939-6622-6,6676672,1378.92002,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to biology""
+}, {
+     ""code"": ""92C40"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Biochemistry, molecular biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}, {
+     ""code"": ""92D10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Genetics and epigenetics""
+}, {
+     ""code"": ""00B15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Collections of articles of miscellaneous specific interest""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2017,https://zbmath.org/6676672
+Not available,Zbl,2018-06-18T11:24:22Z,journal article,https://doi.org/10.1007/s00180-017-0743-1,6890538,1417.62131,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62H05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Characterization and structure theory for multivariate probability distributions; copulas""
+}, {
+     ""code"": ""60E05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Probability distributions: general theory""
+}, {
+     ""code"": ""62E15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Exact distribution theory in statistics""
+}, {
+     ""code"": ""62-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to statistics""
+}]",2138974; 3050470; 6082956; 6244335; 1134711; 5308950; 5596929; 933112; 6714830; 6156806; 6512828; 6983899,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2018,https://zbmath.org/6890538
+Not available; Not available; Not available,Zbl,2022-09-28T08:34:03Z,journal article,https://doi.org/10.1007/s11538-022-01072-w,7593618,1498.92135,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",850224; 2068920; 1183924; 3063409; 811636; 3774590; 3049710; 6388076; 3364733; 3736680; 6644971; 1782877; 6643256,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2022,https://zbmath.org/7593618
+Not available; Not available; Not available; Not available; Not available; Not available,Zbl,2023-03-27T12:52:58Z,journal article,https://doi.org/10.1080/01621459.2020.1799812,7668243,1507.62221,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62D10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Missing data""
+}, {
+     ""code"": ""62F15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Bayesian inference""
+}, {
+     ""code"": ""62P10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to biology and medical sciences; meta analysis""
+}]",5782540; 6499939; 3567782; 1558159; 6957234; 6919541; 4088699; 720679; 7157310; 3943611; 3005986,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2022,https://zbmath.org/7668243
+"Hu, Di; Xiong, Cai-Hua; Sun, Ronglei",Zbl,2021-06-03T14:13:17Z,journal article,https://doi.org/10.1016/j.jtbi.2021.110646,7354780,1465.92008,foot proportions; relative foot height; bipedal walking energetics; functional model,English,"JSON3.Object[{
+     ""code"": ""92C10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Biomechanics""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",3700400; 7243609; 7054561,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Working out the bipedal walking expenditure of energy based on foot morphology of different hominid genera: implications for foot evolution,2021,https://zbmath.org/7354780
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+"Jhwueng, Dwueng-Chwuan",Zbl,2020-03-10T13:39:48Z,journal article,https://doi.org/10.1016/j.csda.2020.106924,7178862,1510.62049,phylogenetic comparative analysis; Gaussian process; Brownian motion; Ornstein-Uhlenbeck process; CIR process; trait evolution; approximate Bayesian computation,English,"JSON3.Object[{
+     ""code"": ""62-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to statistics""
+}, {
+     ""code"": ""62F15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Bayesian inference""
+}, {
+     ""code"": ""68R10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Graph theory (including graph drawing) in computer science""
+}, {
+     ""code"": ""91G30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Interest rates, asset pricing, etc. (stochastic models)""
+}]",7220410; 6220574; 2084318; 5505359; 6381317; 6303328; 7281619; 788118; 3657139; 1813698,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Modeling rate of adaptive trait evolution using Cox-Ingersoll-Ross process: an approximate Bayesian computation approach,2020,https://zbmath.org/7178862
+"Elliot, Michael G.",Zbl,2018-09-17T04:19:04Z,journal article,https://doi.org/10.1016/j.jtbi.2014.09.033,6937660,1405.92192,comparative methods; directional evolution,English,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Identical inferences about correlated evolution arise from ancestral state reconstruction and independent contrasts,2015,https://zbmath.org/6937660
+"Virta, Joni; Li, Bing; Nordhausen, Klaus; Oja, Hannu",Zbl,2017-11-09T14:00:07Z,journal article,https://doi.org/10.1016/j.jmva.2017.09.008,6804477,1381.62107,FOBI; Kronecker structure; matrix-valued data; multilinear algebra,English,"JSON3.Object[{
+     ""code"": ""62H12"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Estimation in multivariate analysis""
+}, {
+     ""code"": ""62H25"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Factor analysis and principal components; correspondence analysis""
+}, {
+     ""code"": ""62G20"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Asymptotic properties of nonparametric inference""
+}]",6290106; 6375089; 6923298; 1391247; 6085155; 5828042; 7068666; 1547818; 5608004; 1519613; 23393; 5686529; 5882241; 6125288; 45789; 6922761; 6551866; 6111192; 5777366; 2165126; 6523744; 6381996; 5614405; 6098612; 1813698; 6804477; 6896389; 6906665; 6290120; 7555458; 6195959,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Independent component analysis for tensor-valued data,2017,https://zbmath.org/6804477
+"Taback, Nathan",Zbl,2022-05-03T15:16:40Z,book / book article,https://doi.org/10.1201/9781003033691,7517342,,nothing,English,"JSON3.Object[{
+     ""code"": ""62-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to statistics""
+}, {
+     ""code"": ""62Kxx"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Design of statistical experiments""
+}, {
+     ""code"": ""62-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to statistics""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Design and analysis of experiments and observational studies using R,2022,https://zbmath.org/7517342
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+"Jombart, Thibaut; Pavoine, Sandrine; Devillard, Sébastien; Pontier, Dominique",Zbl,2019-02-12T08:26:44Z,journal article,https://doi.org/10.1016/j.jtbi.2010.03.038,7020452,1406.92428,phylogenetic principal component analysis; pPCA; multivariate; comparative method; phylogenetic signal,English,"JSON3.Object[{
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}, {
+     ""code"": ""62P10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to biology and medical sciences; meta analysis""
+}, {
+     ""code"": ""62H25"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Factor analysis and principal components; correspondence analysis""
+}]",2165627; 3053476; 3063411; 5832823,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Putting phylogeny into the analysis of biological traits: a methodological approach,2010,https://zbmath.org/7020452
+"Székely, Gábor J.; Rizzo, Maria L.",Zbl,2015-01-06T12:25:39Z,journal article,https://doi.org/10.1214/14-AOS1255,6383654,1309.62105,independence; multivariate; partial distance correlation; dissimilarity; energy statistics,English,"JSON3.Object[{
+     ""code"": ""62H20"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Measures of association (correlation, canonical correlation, etc.)""
+}, {
+     ""code"": ""62H15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Hypothesis testing in multivariate analysis""
+}, {
+     ""code"": ""62G05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Nonparametric estimation""
+}]",2151400; 3848468; 1674533; 6368434; 803429; 3305583; 5492743; 1538603; 3945948; 6104681; 6226025; 3626441; 3673370; 3019179; 6265860; 5696871; 6244325; 6247814; 5241122,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Partial distance correlation with methods for dissimilarities,2014,https://zbmath.org/6383654
+"Emily, Mathieu; Hitte, Christophe; Mom, Alain",Zbl,2018-08-15T11:07:32Z,journal article,https://doi.org/10.1016/j.csda.2016.01.017,6918382,1468.6205,dissimilarity; sparse contingency table; single-linkage clustering; conditional profile,English,"JSON3.Object[{
+     ""code"": ""62-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to statistics""
+}, {
+     ""code"": ""62H17"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Contingency tables""
+}, {
+     ""code"": ""62H30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Classification and discrimination; cluster analysis (statistical aspects)""
+}, {
+     ""code"": ""68T05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Learning and adaptive systems in artificial intelligence""
+}, {
+     ""code"": ""62P10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to biology and medical sciences; meta analysis""
+}]",5492743; 3504320; 3117235; 5593672; 6445722,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,SMILE: a novel dissimilarity-based procedure for detecting sparse-specific profiles in sparse contingency tables,2016,https://zbmath.org/6918382
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+Not available,Zbl,2014-02-14T19:06:51Z,book / book article,https://doi.org/10.1007/978-1-4614-9542-0,6257748,1300.92008,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""92-02"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Research exposition (monographs, survey articles) pertaining to biology""
+}, {
+     ""code"": ""92D15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Problems related to evolution""
+}]",,Irina Ioana Mohorianu,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2014,https://zbmath.org/6257748
+Not available; Not available; Not available; Not available; Not available,Zbl,0001-01-01T00:00:00Z,serial article,,2036344,1031.68785,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""68U99"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computing methodologies and applications""
+}, {
+     ""code"": ""68U10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computing methodologies for image processing""
+}, {
+     ""code"": ""68U35"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computing methodologies for information systems (hypertext navigation, interfaces, decision support, etc.)""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2001,https://zbmath.org/2036344
+,Zbl,2008-07-08T12:12:19Z,book / book article,,5298818,1140.94004,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""94-06"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Proceedings, conferences, collections, etc. pertaining to information and communication theory""
+}, {
+     ""code"": ""92-06"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Proceedings, conferences, collections, etc. pertaining to biology""
+}, {
+     ""code"": ""00B15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Collections of articles of miscellaneous specific interest""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2008,https://zbmath.org/5298818
+"Vejdemo-Johansson, Mikael; Mukherjee, Sayan",Zbl,2024-02-14T18:03:44Z,journal article,https://doi.org/10.3934/fods.2022018,7805164,,persistent homology; hypothesis testing; family-wise error rate; false discovery rate; multiple hypothesis control,English,"JSON3.Object[{
+     ""code"": ""55N31"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Persistent homology and applications, topological data analysis""
+}]",7421252; 6339556; 7510518; 3060290; 6472981; 6762703; 6982915; 6863048; 2103273; 6974764; 4080670; 3624650; 3072539; 5998295; 3888712; 6441927; 5208107; 6398291; 3581497; 6918418; 7150955; 6346217; 7244730,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Multiple hypothesis testing with persistent homology,2022,https://zbmath.org/7805164
+"Mosler, Karl; Mozharovskyi, Pavlo",Zbl,2022-08-10T07:13:57Z,journal article,https://doi.org/10.1214/21-STS827,7569965,,approximation; computational complexity; depth statistics; random Tukey depth; robustness,English,"JSON3.Object[{
+     ""code"": ""62-XX"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Statistics""
+}]",5817719; 1088787; 1101869; 6562211; 6523748; 5520643; 1895847; 6710510; 7007212; 5565073; 166840; 93346; 5992422; 6670743; 5244354; 1113915; 6485573; 5865446; 6918409; 4032498; 6849286; 5686512; 6470446; 7367876; 5713720; 5963339; 6485397; 6781379; 1882304; 5280050; 1093131; 6236569; 6552106; 6276377; 4149388; 5991087; 7499086; 1462565; 6511648; 4213248; 3023295; 4026584; 1916798; 2135359; 1882305; 1813697; 6379517; 5689022; 7061521; 6821221; 7270282; 7080020; 6674048; 6946212; 795295; 4172172; 6519994; 3818884; 3616198; 6055874; 6393431; 6224990; 6965688; 1610634; 1334935; 194744; 1203741; 984166; 5200009; 5836134; 6819619; 3541764; 7474728; 2071018; 5244356; 5132684; 6958974; 7551473; 7368224; 1828948,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Choosing among notions of multivariate depth statistics,2022,https://zbmath.org/7569965
+Not available; Not available; Not available,Zbl,2015-10-16T05:46:02Z,journal article,https://doi.org/10.1007/s11222-010-9222-z,6495015,1322.62142,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62G10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Nonparametric hypothesis testing""
+}, {
+     ""code"": ""62H15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Hypothesis testing in multivariate analysis""
+}]",1101869; 4145149; 5175928; 1545099; 5722226; 3798732; 1865517; 3808421; 3658838; 2154036; 4017996; 1534733; 5016400; 1912119; 5306868; 3666031; 3581497; 5604513; 5227155; 1621508; 1138411; 1271910,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2012,https://zbmath.org/6495015
+"Baldin, Nikolay; Reiß, Markus",Zbl,2016-11-02T16:42:32Z,journal article,https://doi.org/10.1016/j.spa.2016.04.014,6647118,1351.60059,volume estimation; Poisson point process; convex hull; stopping set; oracle inequality,English,"JSON3.Object[{
+     ""code"": ""60G55"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Point processes (e.g., Poisson, Cox, Hawkes processes)""
+}, {
+     ""code"": ""62G05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Nonparametric estimation""
+}, {
+     ""code"": ""62M30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Inference from spatial processes""
+}, {
+     ""code"": ""65C60"",
+   ""scheme"": ""msc2010"",
+     ""text"": ""Computational problems in statistics""
+}]",4103863; 5796754; 6406363; 4007326; 4100276; 1038513; 6075619; 903604; 50540; 227027; 458828; 1264541; 1219614; 64520; 788313; 6141054; 5885398; 6124761; 2077591; 2235758; 3581497; 3785894; 713895; 1370315; 5243454,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Unbiased estimation of the volume of a convex body,2016,https://zbmath.org/6647118
+"Bowman, Adrian W.; Katina, Stanislav; Smith, Joanna; Brown, Denise",Zbl,2018-08-21T11:28:41Z,journal article,https://doi.org/10.1016/j.csda.2014.12.007,6921476,1468.62031,anatomy; change-point; P-splines; principal components; principal curves; shape analysis; smoothing,English,"JSON3.Object[{
+     ""code"": ""62-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to statistics""
+}, {
+     ""code"": ""62G07"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Density estimation""
+}, {
+     ""code"": ""62H25"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Factor analysis and principal components; correspondence analysis""
+}]",4131516; 6291408; 3658833; 1194132; 1561974; 991833; 4060534; 700016; 1697661; 4113775; 5078640; 64502; 2188752; 3551729; 5016352; 6539864,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Anatomical curve identification,2015,https://zbmath.org/6921476
+Not available; Not available; Not available; Not available; Not available; Not available,Zbl,2023-10-09T15:18:57Z,journal article,https://doi.org/10.1080/10618600.2022.2104289,7747448,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62-XX"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Statistics""
+}]",5906817; 7066222; 5170846; 6281627; 5975588; 7247691; 7267977; 7095880; 2165128; 6688763; 7808153; 5520749,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2023,https://zbmath.org/7747448
+"Cuevas, Antonio; Pateiro-López, Beatriz",Zbl,2018-06-15T13:01:09Z,journal article,https://doi.org/10.1016/j.jspi.2017.11.005,6890166,1432.62071,set estimation; volume estimation; boundary length estimation,English,"JSON3.Object[{
+     ""code"": ""62G05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Nonparametric estimation""
+}, {
+     ""code"": ""60D05"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Geometric probability and stochastic geometry""
+}, {
+     ""code"": ""62G20"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Asymptotic properties of nonparametric inference""
+}]",5375979; 6775431; 5581991; 5220058; 6647118; 6382073; 6540700; 6282477; 6055123; 5186960; 2103392; 3966959; 3753862; 3146500; 2078026; 5381600; 5874494; 1865873; 458828; 5693538; 3888712; 5248788; 5885398; 5816162; 3581497; 5604513; 3533663,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Polynomial volume estimation and its applications,2018,https://zbmath.org/6890166
+"Scrucca, Luca",Zbl,2018-08-15T13:58:34Z,journal article,https://doi.org/10.1016/j.csda.2015.01.006,6918684,1468.62174,finite mixture of Gaussian distributions; cluster analysis; connected components; high density regions; cluster cores,English,"JSON3.Object[{
+     ""code"": ""62-08"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Computational methods for problems pertaining to statistics""
+}, {
+     ""code"": ""62H30"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Classification and discrimination; cluster analysis (statistical aspects)""
+}]",481973; 1101869; 2090824; 955275; 3567782; 1286570; 3466347; 3579840; 6381621; 1644942; 6210922; 5496899; 6975381; 5263158; 3181613; 5297599; 1551458; 6495088; 5180605; 5563345; 1089523; 1294360; 7136975; 2133580; 6984135; 3850307; 5762353,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Identifying connected components in Gaussian finite mixture models for clustering,2016,https://zbmath.org/6918684
+Not available; Not available; Not available,Zbl,2018-10-29T09:40:40Z,journal article,https://doi.org/10.1007/s10100-018-0561-8,6967149,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.; zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""90Bxx"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Operations research and management science""
+}]",1093148; 5068329; 3987042; 3880428; 6712097; 969555; 1206578; 5080888; 3307201; 6599390; 1093152; 6628114; 5650819; 5144986; 1253202; 1360727; 5349224; 2170709; 5144957; 6636512; 2091659; 1620084; 1827411; 4170594,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2018,https://zbmath.org/6967149
+Not available,Zbl,2008-06-05T08:02:34Z,book / book article,https://doi.org/10.1007/978-0-387-77789-4,5284805,1166.62081,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,"JSON3.Object[{
+     ""code"": ""62P10"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Applications of statistics to biology and medical sciences; meta analysis""
+}, {
+     ""code"": ""62-04"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Software, source code, etc. for problems pertaining to statistics""
+}, {
+     ""code"": ""62-01"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Introductory exposition (textbooks, tutorial papers, etc.) pertaining to statistics""
+}, {
+     ""code"": ""92C15"",
+   ""scheme"": ""msc2020"",
+     ""text"": ""Developmental biology, pattern formation""
+}]",,,,zbMATH Open Web Interface contents unavailable due to conflicting licenses.,Not available,2008,https://zbmath.org/5284805
