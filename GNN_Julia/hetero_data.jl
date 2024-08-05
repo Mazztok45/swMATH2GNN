@@ -4,15 +4,12 @@ using SparseArrays
 using DataFrames
 using LightGraphs
 using GraphPlot
+module HeteroData
 
+export preprocess_heterodata, keywords_vocabulary, software_to_software_edges, software_to_articles_edges, article_to_article_edges, article_to_article_edges,ids_mapping,create_edge_index
 # Sample DataFrames (replace with actual data loading)
-articles_dict = Dict("keywords" => ["Python", "orms"],
-                     "id" => Dict(1 => 1001, 2 => 1002),
-                     "ref_ids" => Dict(1 => "2", 2 => "1"))
-software_dict = Dict("keywords" => ["Python", "orms"],
-                     "id" => Dict(1 => 2001, 2 => 2002),
-                     "related_software" => Dict(1 => "2", 2 => "1"),
-                     "standard_articles" => Dict(1 => "1", 2 => "2"))
+#articles_dict = Dict("keywords" => ["Python", "orms"], "id" => Dict(1 => 1001, 2 => 1002),"ref_ids" => Dict(1 => "2", 2 => "1"))
+#software_dict = Dict("keywords" => ["Python", "orms"],"id" => Dict(1 => 2001, 2 => 2002),"related_software" => Dict(1 => "2", 2 => "1"),"standard_articles" => Dict(1 => "1", 2 => "2"))
 
 function preprocess_heterodata(articles_dict, software_dict)
     data = Dict()
@@ -60,22 +57,22 @@ function keywords_vocabulary(articles_dict, software_dict)
     all_keywords = vcat(software_keywords, articles_keywords)
 
     # Debug: Check all_keywords
-    println("all_keywords: ", all_keywords)
+    #println("all_keywords: ", all_keywords)
 
     # Vectorize the keywords using TfIdf
     corpus = Corpus([StringDocument(doc) for doc in all_keywords])
-    println("Corpus created: ", corpus)
+    #println("Corpus created: ", corpus)
 
     # Create DocumentTermMatrix
     dtm = DocumentTermMatrix(corpus)
-    println("DTM created: ", dtm)
+    #println("DTM created: ", dtm)
 
     tfidf_matrix = tf_idf(dtm)
     
     # Debug: Check tfidf_matrix
-    println("tfidf_matrix size: ", size(tfidf_matrix))
-    println("tfidf_matrix type: ", typeof(tfidf_matrix))
-    println("tfidf_matrix: ", tfidf_matrix)
+    #println("tfidf_matrix size: ", size(tfidf_matrix))
+    #println("tfidf_matrix type: ", typeof(tfidf_matrix))
+    #println("tfidf_matrix: ", tfidf_matrix)
 
     # Split the tfidf_matrix
     num_software = length(software_keywords)
@@ -85,25 +82,25 @@ function keywords_vocabulary(articles_dict, software_dict)
     articles_features = tfidf_matrix[num_software+1:end, :]
 
     # Debug: Check split matrices
-    println("software_features size: ", size(software_features))
-    println("articles_features size: ", size(articles_features))
+    #println("software_features size: ", size(software_features))
+    #println("articles_features size: ", size(articles_features))
 
     # Convert sparse matrices to dense matrices for KernelPCA
     software_features_dense = Array(software_features)
     articles_features_dense = Array(articles_features)
 
     # Check types and shapes
-    println("software_features_dense type: ", typeof(software_features_dense))
-    println("articles_features_dense type: ", typeof(articles_features_dense))
-    println("software_features_dense size: ", size(software_features_dense))
-    println("articles_features_dense size: ", size(articles_features_dense))
-
+    #println("software_features_dense type: ", typeof(software_features_dense))
+    #println("articles_features_dense type: ", typeof(articles_features_dense))
+    #println("software_features_dense size: ", size(software_features_dense))
+    #println("articles_features_dense size: ", size(articles_features_dense))
+    create_edge_index
     # Concatenate the dense matrices vertically
     all_features_dense = vcat(software_features_dense, articles_features_dense)
 
     # Ensure all_features_dense is a simple 2D array
-    println("all_features_dense type: ", typeof(all_features_dense))
-    println("all_features_dense size: ", size(all_features_dense))
+    #println("all_features_dense type: ", typeof(all_features_dense))
+    #println("all_features_dense size: ", size(all_features_dense))
 
     # Apply KernelPCA for dimensionality reduction
     kpca = fit(KernelPCA, all_features_dense, maxoutdim=5000, kernel=(X, Y) -> X * Y')
@@ -189,6 +186,6 @@ function create_edge_index(edge_dict, mapped_dict)
     edge_index = hcat(source_indices, target_indices)'
     return edge_index
 end
-
+end
 # Example usage
-data = preprocess_heterodata(articles_dict, software_dict)
+#data = preprocess_heterodata(articles_dict, software_dict)
