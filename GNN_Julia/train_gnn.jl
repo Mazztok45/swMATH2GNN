@@ -138,8 +138,8 @@ for i in 1:nrow(software_df)
 end
 
 # Print keys to verify dictionaries
-println("Articles Dict Keys: ", keys(articles_dict))
-println("Software Dict Keys: ", keys(software_dict))
+#println("Articles Dict Keys: ", keys(articles_dict))
+#println("Software Dict Keys: ", keys(software_dict))
 
 # Process the data into a HeteroData() object
 try
@@ -150,10 +150,10 @@ catch e
 end
 
 # Print data metadata if available
-if isdefined(Main, :data) && data !== nothing
-    metadata = data.metadata
-    println(metadata)
-end
+#if isdefined(Main, :data) && data !== nothing
+#    metadata = data.metadata
+#    println(metadata)
+#end
 
 # Define the transformation (RandomLinkSplit equivalent in Julia)
 function random_link_split(data; num_val, num_test, disjoint_train_ratio, neg_sampling_ratio, add_negative_train_samples, edge_types, rev_edge_types)

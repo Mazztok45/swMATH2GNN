@@ -8,13 +8,13 @@ using MultivariateStats
 using SparseArrays
 
 export preprocess_heterodata
-
+import TextAnalysis: tf_idf, DocumentTermMatrix, StringDocument
 # Function to preprocess the hetero data
 function preprocess_heterodata(articles_dict::Dict, software_dict::Dict)
     data = Dict{Symbol, Any}()
 
     # Create nodes for all articles and software with the features from the called function
-    articles_features, software_features = keywords_vocabulary(articles_dict, software_dict)
+    articles_features, software_features = keywords_vocabulary(articles_dict,software_dict)
     data[:article] = articles_features
     data[:software] = software_features
 
@@ -39,23 +39,23 @@ function keywords_vocabulary(articles_dict::Dict, software_dict::Dict)
     articles_keywords = []
 
     for value in values(articles_dict)
-        if typeof(value) == String
-            if startswith(value, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
+        if typeof(value.keywords) == String
+            if startswith(value.keywords, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
                 push!(articles_keywords, "not_available")
             else
-                value = replace(value, ';' => ' ')
-                push!(articles_keywords, value)
+                elem = replace(value.keywords, ';' => ' ')
+                push!(articles_keywords, elem)
             end
         end
     end
 
     for value in values(software_dict)
-        if typeof(value) == String
-            if startswith(value, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
+        if typeof(value.keywords) == String
+            if startswith(value.keywords, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
                 push!(software_keywords, "not_available")
             else
-                value = replace(value, ';' => ' ')
-                push!(software_keywords, value)
+                elem = replace(value.keywords, ';' => ' ')
+                push!(software_keywords, elem)
             end
         else
             push!(software_keywords, "nan")
@@ -64,11 +64,26 @@ function keywords_vocabulary(articles_dict::Dict, software_dict::Dict)
 
     all_keywords = vcat(software_keywords, articles_keywords)
 
-    vectorizer = TFIDF()
-    fit!(vectorizer, all_keywords)
+    
+    ### Preparing the corpus
+    list_soft_crps=[]
+    for text in software_keywords
+        println(typeof(text))
+        push!(list_soft_crps, StringDocument(text))
+    end
+    soft_crps = Corpus(list_soft_crps)
 
-    software_features = transform(vectorizer, software_keywords)
-    articles_features = transform(vectorizer, articles_keywords)
+    list_art_crps=[]
+    for text in articles_keywords
+        println(typeof(text))
+        push!(list_art_crps, StringDocument(text))
+    end
+    art_crps = Corpus(list_art_crps)
+    #vectorizer = TFIDF()
+    #fit!(vectorizer, all_keywords)
+    software_features = tf_idf(DocumentTermMatrix(soft_crps))
+    articles_features = tf_idf(DocumentTermMatrix(art_crps))
+
 
     # Articles features dimensionality reduction
     pca = PCA(5000)
