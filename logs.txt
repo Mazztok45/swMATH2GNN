@@ -1,8 +1,0 @@
-Preprocessing started
-Extracting keywords from articles
-Extracting keywords from software
-TF-IDF matrix created with size: (370935, 0)
-software_features size: (45210, 0)
-articles_features size: (325725, 0)
-all_features_dense size: (370935, 0)
-Error in preprocess_heterodata: ErrorException("TF-IDF matrix is empty. Please check the input data.")

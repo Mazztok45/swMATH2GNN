@@ -1,0 +1,87 @@
+using CSV
+using DataFrames
+
+# Define the Software struct
+struct Software
+    articles_count::Int64
+    authors::String
+    classification::String
+    dependencies::String
+    description::String
+    homepage::String
+    id::Int64
+    keywords::String
+    license_terms::String
+# Function to create a Software instance from a DataFrame row
+function create_software(row::DataFrameRow)
+    Software(
+        row.articles_count,
+        coalesce(row.authors, ""),
+        coalesce(row.classification, ""),
+        coalesce(row.dependencies, ""),
+        coalesce(row.description, ""),
+        row.homepage,
+        row.id,
+        coalesce(row.keywords, ""),
+        coalesce(row.license_terms, ""),
+        row.name,
+        coalesce(row.operating_systems, ""),
+        string(coalesce(row.orms_id, "")),
+        coalesce(row.programming_languages, ""),
+        coalesce(row.related_software, ""),
+        coalesce(row.source_code, ""),
+        coalesce(row.standard_articles, ""),
+        row.zbmath_url
+    )
+end
+    name::String
+    operating_systems::String
+    orms_id::String
+    programming_languages::String
+    related_software::String
+    source_code::String
+    standard_articles::String
+    zbmath_url::String
+end
+
+# Function to create a Software instance from a DataFrame row
+function create_software(row::DataFrameRow)
+    Software(
+        row.articles_count,
+        coalesce(row.authors, ""),
+        coalesce(row.classification, ""),
+        coalesce(row.dependencies, ""),
+        coalesce(row.description, ""),
+        row.homepage,
+        row.id,
+        coalesce(row.keywords, ""),
+        coalesce(row.license_terms, ""),
+        row.name,
+        coalesce(row.operating_systems, ""),
+        string(coalesce(row.orms_id, "")),
+        coalesce(row.programming_languages, ""),
+        coalesce(row.related_software, ""),
+        coalesce(row.source_code, ""),
+        coalesce(row.standard_articles, ""),
+        row.zbmath_url
+    )
+end
+
+# Read the CSV file
+file_path = "./data/full_df.csv"
+df = CSV.read(file_path, DataFrame)
+
+# Display the first few rows and the column types
+println(first(df, 5))
+println(describe(df))
+
+# Create Software instances
+software_dict = Dict{Int64, Software}()
+for i in 1:nrow(df)
+    row = df[i, :]
+    software_instance = create_software(row)
+    software_dict[row.id] = software_instance
+end
+
+println("Created $(length(software_dict)) software instances.")
+

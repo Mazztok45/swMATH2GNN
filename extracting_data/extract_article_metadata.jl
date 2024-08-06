@@ -152,6 +152,7 @@ function dict_list_to_df(dict_list)
     end
     println(names(df))
     println(size(df))
+    println(describe(df))
     CSV.write("./articles_metadata_collection/full_df.csv",df)
 end
 

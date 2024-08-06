@@ -1,220 +1,164 @@
-using CSV
+module HeteroDataProcessing
+
+using LightGraphs
 using DataFrames
-using GraphNeuralNetworks
-using Flux
+using CSV
 using TextAnalysis
 using MultivariateStats
 using SparseArrays
 
-include("hetero_data.jl")
-using .HeteroData
+export preprocess_heterodata
 
-# Ensure the fit function is imported from MultivariateStats
-import MultivariateStats: fit, KernelPCA
+# Function to preprocess the hetero data
+function preprocess_heterodata(articles_dict::Dict, software_dict::Dict)
+    data = Dict{Symbol, Any}()
 
-# Helper functions to handle Missing values and ensure correct types
-function convert_to_string(x)
-    return !ismissing(x) ? string(x) : ""
+    # Create nodes for all articles and software with the features from the called function
+    articles_features, software_features = keywords_vocabulary(articles_dict, software_dict)
+    data[:article] = articles_features
+    data[:software] = software_features
+
+    # Create edges between the software
+    software_edges = software_to_software_edges(software_dict)
+    data[:software_related_software] = software_edges
+
+    # Create edges between software and articles
+    sof_art_edges = software_to_articles_edges(software_dict, articles_dict)
+    data[:software_mentioned_in_article] = sof_art_edges
+
+    # Create edges between article and article
+    article_edges = article_to_article_edges(articles_dict)
+    data[:article_references_article] = article_edges
+
+    println("Built HeteroData Dataset")
+    return data
 end
 
-function convert_to_nothing(x)
-    return !ismissing(x) ? x : nothing
-end
+function keywords_vocabulary(articles_dict::Dict, software_dict::Dict)
+    software_keywords = []
+    articles_keywords = []
 
-function convert_to_default_string(x, default)
-    return !ismissing(x) ? string(x) : default
-end
-
-# Define the Article structure based on inferred schema
-struct Article
-    author_name::Union{String, Nothing}
-    database::String
-    datestamp::String
-    document_type::String
-    doi::Union{String, Nothing}
-    id::String
-    identifier::String
-    keywords::String
-    language::String
-    msc::String
-    ref_ids::Union{String, Nothing}
-    reviewer_name::Union{String, Nothing}
-    subtitle::Union{String, Nothing}
-    text::Union{String, Nothing}
-    title::String
-    year::Int64
-    zbmath_url::String
-end
-
-# Define the Software structure based on inferred schema
-struct Software
-    articles_count::Int64
-    authors::String
-    classification::Union{String, Nothing}
-    dependencies::Union{String, Nothing}
-    description::Union{String, Nothing}
-    homepage::String
-    id::String
-    keywords::String
-    license_terms::Union{String, Nothing}
-    name::String
-    operating_systems::Union{String, Nothing}
-    orms_id::Union{String, Nothing}
-    programming_languages::Union{String, Nothing}
-    related_software::String
-    source_code::Union{String, Nothing}
-    standard_articles::Union{String, Nothing}
-    zbmath_url::String
-end
-
-# Function to create Article from DataFrame row
-function create_article(row)
-    return Article(
-        convert_to_nothing(row.author_name),
-        row.database,
-        row.datestamp,
-        row.document_type,
-        convert_to_nothing(row.doi),
-        convert_to_string(row.id),
-        convert_to_string(row.identifier),
-        convert_to_string(row.keywords),
-        row.language,
-        row.msc,
-        convert_to_nothing(row.ref_ids),
-        convert_to_nothing(row.reviewer_name),
-        convert_to_nothing(row.subtitle),
-        convert_to_nothing(row.text),
-        row.title,
-        row.year,
-        row.zbmath_url
-    )
-end
-
-# Function to create Software from DataFrame row
-function create_software(row)
-    return Software(
-        row.articles_count,
-        convert_to_string(row.authors),
-        convert_to_nothing(row.classification),
-        convert_to_nothing(row.dependencies),
-        convert_to_nothing(row.description),
-        row.homepage,
-        convert_to_string(row.id),
-        convert_to_string(row.keywords),
-        convert_to_nothing(row.license_terms),
-        row.name,
-        convert_to_nothing(row.operating_systems),
-        convert_to_string(row.orms_id),
-        convert_to_default_string(row.related_software, "no software"),
-        convert_to_nothing(row.source_code),
-        convert_to_nothing(row.standard_articles),
-        row.zbmath_url
-    )
-end
-
-# Load full data into DataFrames
-articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
-software_df = CSV.read("./data/full_df.csv", DataFrame)
-
-# Print the column names of the DataFrames to verify
-println("Articles DataFrame columns: ", names(articles_df))
-println("Software DataFrame columns: ", names(software_df))
-
-# Convert DataFrames to dictionaries with struct types
-articles_dict = Dict(articles_df.id[i] => create_article(articles_df[i, :]) for i in 1:size(articles_df, 1))
-software_dict = Dict(software_df.id[i] => create_software(software_df[i, :]) for i in 1:size(software_df, 1))
-
-# Ensure all Software instances have the 'related_software' field
-for key in keys(software_dict)
-    if software_dict[key].related_software == "no software"
-        software_dict[key] = Software(
-            software_dict[key].articles_count,
-            software_dict[key].authors,
-            software_dict[key].classification,
-            software_dict[key].dependencies,
-            software_dict[key].description,
-            software_dict[key].homepage,
-            software_dict[key].id,
-            software_dict[key].keywords,
-            software_dict[key].license_terms,
-            software_dict[key].name,
-            software_dict[key].operating_systems,
-            software_dict[key].orms_id,
-            software_dict[key].programming_languages,
-            "no software",  # Ensure this field is set
-            software_dict[key].source_code,
-            software_dict[key].standard_articles,
-            software_dict[key].zbmath_url
-        )
+    for value in values(articles_dict)
+        if typeof(value) == String
+            if startswith(value, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
+                push!(articles_keywords, "not_available")
+            else
+                value = replace(value, ';' => ' ')
+                push!(articles_keywords, value)
+            end
+        end
     end
+
+    for value in values(software_dict)
+        if typeof(value) == String
+            if startswith(value, "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")
+                push!(software_keywords, "not_available")
+            else
+                value = replace(value, ';' => ' ')
+                push!(software_keywords, value)
+            end
+        else
+            push!(software_keywords, "nan")
+        end
+    end
+
+    all_keywords = vcat(software_keywords, articles_keywords)
+
+    vectorizer = TFIDF()
+    fit!(vectorizer, all_keywords)
+
+    software_features = transform(vectorizer, software_keywords)
+    articles_features = transform(vectorizer, articles_keywords)
+
+    # Articles features dimensionality reduction
+    pca = PCA(5000)
+    articles_features_reduced = pca(articles_features)
+
+    # Software features dimensionality reduction
+    software_features_reduced = pca(software_features)
+
+    return articles_features_reduced, software_features_reduced
 end
 
-# Print keys to verify dictionaries
-println("Articles Dict Keys: ", keys(articles_dict))
-println("Software Dict Keys: ", keys(software_dict))
+function software_to_software_edges(software_dict::Dict)
+    related_software = software_dict["related_software"]
 
-# Process the data into a HeteroData() object
-try
-    data = preprocess_heterodata(articles_dict, software_dict)
-    println("Data preprocessing successful")
-catch e
-    println("Error in preprocess_heterodata: ", e)
+    for (key, relation) in related_software
+        if typeof(relation) == String
+            ids = parse.(Int, matchall(r":id\s*=>\s*\d+", relation))
+            related_software[key] = ids
+        else
+            related_software[key] = []
+        end
+    end
+
+    mapped_dict = ids_mapping(software_dict)
+    edge_index = create_edge_index(related_software, mapped_dict)
+
+    return edge_index
 end
 
-# Print data metadata if available
-if isdefined(Main, :data) && data !== nothing
-    metadata = data.metadata
-    println(metadata)
+function software_to_articles_edges(software_dict::Dict, articles_dict::Dict)
+    standard_articles = software_dict["standard_articles"]
+
+    for (key, relation) in standard_articles
+        if typeof(relation) == String
+            ids = parse.(Int, matchall(r":id\s*=>\s*\d+", relation))
+            standard_articles[key] = ids
+        else
+            standard_articles[key] = []
+        end
+    end
+
+    mapped_dict = ids_mapping(articles_dict)
+    edge_index = create_edge_index(standard_articles, mapped_dict)
+
+    return edge_index
 end
 
-# Define the transformation (RandomLinkSplit equivalent in Julia)
-function random_link_split(data; num_val, num_test, disjoint_train_ratio, neg_sampling_ratio, add_negative_train_samples, edge_types, rev_edge_types)
-    # Implement your splitting logic here
-    # This is a placeholder function, implement according to your logic
-    return train_data, val_data, test_data
+function article_to_article_edges(articles_dict::Dict)
+    references = articles_dict["ref_ids"]
+
+    for (key, value) in references
+        if typeof(value) == String
+            ref_ids = parse.(Int, split(value, "; "))
+            references[key] = ref_ids
+        else
+            references[key] = []
+        end
+    end
+
+    mapped_dict = ids_mapping(articles_dict)
+    edge_index = create_edge_index(references, mapped_dict)
+    return edge_index
 end
 
-# Transform data into train, validation, and test dataset
-train_data, val_data, test_data = random_link_split(
-    data; 
-    num_val=0.1,
-    num_test=0.2,
-    disjoint_train_ratio=0.3,
-    neg_sampling_ratio=2.0,
-    add_negative_train_samples=false,
-    edge_types=("software", "mentioned_in", "article"),
-    rev_edge_types=("article", "rev_mentioned_in", "software"),
-)
-
-# Define a loader for training data (LinkNeighborLoader equivalent in Julia)
-function link_neighbor_loader(data, num_neighbors, neg_sampling_ratio, edge_label_index, edge_label, batch_size, shuffle)
-    # Implement your loader logic here
-    # This is a placeholder function, implement according to your logic
-    return loader
+function ids_mapping(mapping_dict::Dict)
+    ids = mapping_dict["id"]
+    inverted_dict = Dict(value => key for (key, value) in pairs(ids))
+    return inverted_dict
 end
 
-edge_label_index = train_data["software", "mentioned_in", "article"].edge_label_index
-edge_label = train_data["software", "mentioned_in", "article"].edge_label
+function create_edge_index(edge_dict::Dict, mapped_dict::Dict)
+    source_indices = []
+    target_indices = []
 
-train_loader = link_neighbor_loader(
-    data=train_data,
-    num_neighbors=[20, 10],
-    neg_sampling_ratio=2.0,
-    edge_label_index=(("software", "mentioned_in", "article"), edge_label_index),
-    edge_label=edge_label,
-    batch_size=128,
-    shuffle=true,
-)
+    for (source, targets) in edge_dict
+        for target in targets
+            if haskey(mapped_dict, target)
+                push!(source_indices, source)
+                target_map = mapped_dict[target]
+                push!(target_indices, target_map)
+            end
+        end
+    end
 
-# Sample a mini-batch
-function get_sampled_data(loader)
-    # Implement your sampling logic here
-    # This is a placeholder function, implement according to your logic
-    return sampled_data
+    source_tensor = collect(source_indices)
+    target_tensor = collect(target_indices)
+
+    edge_index = [source_tensor target_tensor]'
+
+    return edge_index
 end
 
-sampled_data = get_sampled_data(train_loader)
-
-println("Sampled mini-batch:")
-println("===================")
-#println(sampled_data)
+end

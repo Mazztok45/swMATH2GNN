@@ -1,0 +1,83 @@
+using CSV
+using DataFrames
+
+# Define the Article struct
+struct Article
+    author_name::String
+    database::String
+    datestamp::String
+    document_type::String
+    doi::String
+    id::String
+    identifier::String
+    keywords::String
+    language::String
+    msc::String
+    ref_ids::String
+    reviewer_name::String
+    subtitle::String
+    text::String
+    title::String
+    year::String
+    zbmath_url::String
+end
+
+# Function to create an Article instance from a DataFrame row
+function create_article(row::DataFrameRow)
+    Article(
+        coalesce(string(row[:author_name]), ""),
+        coalesce(string(row[:database]), ""),
+        coalesce(string(row[:datestamp]), ""),
+        coalesce(string(row[:document_type]), ""),
+        coalesce(string(row[:doi]), ""),
+        coalesce(string(row[:id]), ""),
+        coalesce(string(row[:identifier]), ""),
+        coalesce(string(row[:keywords]), ""),
+        coalesce(string(row[:language]), ""),
+        coalesce(string(row[:msc]), ""),
+        coalesce(string(row[:ref_ids]), ""),
+        coalesce(string(row[:reviewer_name]), ""),
+        coalesce(string(row[:subtitle]), ""),
+        coalesce(string(row[:text]), ""),
+        coalesce(string(row[:title]), ""),
+        coalesce(string(row[:year]), ""),
+        coalesce(string(row[:zbmath_url]), "")
+    )
+end
+
+# Read the CSV file
+file_path = "./articles_metadata_collection/full_df.csv"
+df = CSV.read(file_path, DataFrame)
+
+# Convert column names to symbols
+col_names = Symbol.(names(df))
+
+# Display the first few rows and the column names
+println(first(df, 5))
+println("Column names in DataFrame: ", col_names)
+
+# Define expected columns
+expected_columns = [
+    :author_name, :database, :datestamp, :document_type, :doi, :id,
+    :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name,
+    :subtitle, :text, :title, :year, :zbmath_url
+]
+
+# Compare the column names and identify any discrepancies
+println("Expected columns: ", expected_columns)
+println("Actual columns: ", col_names)
+
+missing_columns = setdiff(expected_columns, col_names)
+if !isempty(missing_columns)
+    println("Warning: Missing columns in DataFrame: ", missing_columns)
+else
+    # Create Article instances
+    articles_dict = Dict{String, Article}()
+    for i in 1:nrow(df)
+        row = df[i, :]
+        article_instance = create_article(row)
+        articles_dict[string(row[:id])] = article_instance
+    end
+
+    println("Created $(length(articles_dict)) article instances.")
+end
