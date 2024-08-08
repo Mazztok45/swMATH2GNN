@@ -5,13 +5,15 @@ using Flux
 using TextAnalysis
 using MultivariateStats
 using SparseArrays
+using StructTypes
 
 include("hetero_data.jl")
+include("../extracting_data/extract_software_metadata.jl")
 using .HeteroDataProcessing
-
-# Ensure the fit function is imported from MultivariateStats
+using .DataReaderswMATH
+import .DataReaderswMATH: generate_software_dataframe
 import MultivariateStats: fit, KernelPCA
-
+import GraphNeuralNetworks: GNNHeteroGraph
 # Helper functions to handle Missing values and ensure correct types
 function convert_to_string(x)
     return !ismissing(x) ? string(x) : ""
@@ -61,11 +63,15 @@ struct Software
     operating_systems::String
     orms_id::String
     programming_languages::String
-    related_software::String
+    related_software::Dict{Symbol, Any}
     source_code::String
     standard_articles::String
     zbmath_url::String
 end
+
+
+# Implement the StructTypes.StructType method for the custom struct
+StructTypes.StructType(::Type{Software}) = StructTypes.Struct()
 
 # Function to create an Article instance from a DataFrame row
 function create_article(row::DataFrameRow)
@@ -106,7 +112,7 @@ function create_software(row::DataFrameRow)
         convert_to_string(row[:operating_systems]),
         convert_to_string(row[:orms_id]),
         convert_to_string(row[:programming_languages]),
-        convert_to_string(row[:related_software]),
+        row[:related_software],
         convert_to_string(row[:source_code]),
         convert_to_string(row[:standard_articles]),
         convert_to_string(row[:zbmath_url])
@@ -115,8 +121,13 @@ end
 
 # Load full data into DataFrames
 articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
-software_df = CSV.read("./data/full_df.csv", DataFrame)
+# Function to parse the `related_software` JSON strings
 
+
+# Read the CSV file using the custom struct
+#software_df = CSV.read("./data/full_df.csv", DataFrame; types=Dict(:related_software => String))
+
+software_df  = generate_software_dataframe()
 # Print the column names of the DataFrames to verify
 println("Articles DataFrame columns: ", names(articles_df))
 println("Software DataFrame columns: ", names(software_df))
@@ -130,20 +141,25 @@ for i in 1:nrow(articles_df)
 end
 
 # Create Software instances
-software_dict = Dict{String, Software}()
-for i in 1:nrow(software_df)
-    row = software_df[i, :]
-    software_instance = create_software(row)
-    software_dict[string(row[:id])] = software_instance
-end
+#software_dict = Dict{String, Software}()
+#for i in 1:nrow(software_df)
+#    row = software_df[i, :]
+#    software_instance = create_software(row)
+    #println(software_instance)
+#    software_dict[string(row[:id])] = software_instance
+#end
 
 # Print keys to verify dictionaries
 #println("Articles Dict Keys: ", keys(articles_dict))
 #println("Software Dict Keys: ", keys(software_dict))
+software_df.id
+related_soft = [collect(row)[1][2] for row in software_df.related_software]
+
+G = GNNHeteroGraph((:software,:relates_to, :software)=> (software_df.id, related_soft))
 
 # Process the data into a HeteroData() object
 try
-    data = preprocess_heterodata(articles_dict, software_dict)
+    data = preprocess_heterodata(G, articles_dict, software_df)
     println("Data preprocessing successful")
 catch e
     println("Error in preprocess_heterodata: ", e)

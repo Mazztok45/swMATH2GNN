@@ -6,17 +6,18 @@ using CSV
 using TextAnalysis
 using MultivariateStats
 using SparseArrays
-
+using GraphNeuralNetworks
 export preprocess_heterodata
 import TextAnalysis: tf_idf, DocumentTermMatrix, StringDocument
+import MultivariateStats: KernelPCA, PCA, fit, transform
 # Function to preprocess the hetero data
-function preprocess_heterodata(articles_dict::Dict, software_dict::Dict)
+function preprocess_heterodata(articles_dict::Dict, software_df::Dict)
     data = Dict{Symbol, Any}()
 
     # Create nodes for all articles and software with the features from the called function
-    articles_features, software_features = keywords_vocabulary(articles_dict,software_dict)
-    data[:article] = articles_features
-    data[:software] = software_features
+    #articles_features, software_features = keywords_vocabulary(articles_dict,software_df)
+    #data[:article] = articles_features
+    #data[:software] = software_features
 
     # Create edges between the software
     software_edges = software_to_software_edges(software_dict)
@@ -61,21 +62,14 @@ function keywords_vocabulary(articles_dict::Dict, software_dict::Dict)
             push!(software_keywords, "nan")
         end
     end
-
-    all_keywords = vcat(software_keywords, articles_keywords)
-
-    
-    ### Preparing the corpus
     list_soft_crps=[]
     for text in software_keywords
-        println(typeof(text))
         push!(list_soft_crps, StringDocument(text))
     end
     soft_crps = Corpus(list_soft_crps)
 
     list_art_crps=[]
     for text in articles_keywords
-        println(typeof(text))
         push!(list_art_crps, StringDocument(text))
     end
     art_crps = Corpus(list_art_crps)
@@ -86,31 +80,42 @@ function keywords_vocabulary(articles_dict::Dict, software_dict::Dict)
 
 
     # Articles features dimensionality reduction
-    pca = PCA(5000)
-    articles_features_reduced = pca(articles_features)
+    M = fit(KernelPCA, articles_features; maxoutdim=2)
+    articles_features_reduced = transform(M, articles_features)
 
     # Software features dimensionality reduction
-    software_features_reduced = pca(software_features)
-
+    M = fit(KernelPCA, software_features; maxoutdim=2)
+    software_features_reduced = transform(M, software_features)
+    
+    
     return articles_features_reduced, software_features_reduced
 end
 
-function software_to_software_edges(software_dict::Dict)
-    related_software = software_dict["related_software"]
+function software_to_software_edges(G, software_df::Dict)
+    for key_soft in keys(software_dict)
+        s_dict = software_dict[key_soft]
+        collect(software_dict["825"].related_software)
+         Pair(key_soft, s_dict.related_software)
+        
+    
+        #related_software = software_dict["related_software"]
 
-    for (key, relation) in related_software
-        if typeof(relation) == String
-            ids = parse.(Int, matchall(r":id\s*=>\s*\d+", relation))
-            related_software[key] = ids
-        else
-            related_software[key] = []
-        end
+            #for (key, relation) in related_software
+            #println(key, relation)
+           # if typeof(related_software) == Software
+               # ids = parse.(Int, eachmatch(r":id\s*=>\s*\d+", related_software))
+              #  println(ids)
+              #  related_software[key] = ids
+                    
+              #  else
+               #     related_software[key] = []
+               # end
+           # end
     end
+   # mapped_dict = ids_mapping(software_dict)
+    #edge_index = create_edge_index(related_software, mapped_dict)
 
-    mapped_dict = ids_mapping(software_dict)
-    edge_index = create_edge_index(related_software, mapped_dict)
-
-    return edge_index
+    return add_edges!(G, key_soft, s_dict.related_software)
 end
 
 function software_to_articles_edges(software_dict::Dict, articles_dict::Dict)
@@ -149,7 +154,7 @@ function article_to_article_edges(articles_dict::Dict)
 end
 
 function ids_mapping(mapping_dict::Dict)
-    ids = mapping_dict["id"]
+    ids = mapping_dict #["id"]
     inverted_dict = Dict(value => key for (key, value) in pairs(ids))
     return inverted_dict
 end
