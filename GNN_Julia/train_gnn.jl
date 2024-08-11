@@ -18,7 +18,8 @@ using .DataReaderswMATH
 import .DataReaderswMATH: generate_software_dataframe
 import MultivariateStats: fit, KernelPCA
 import GraphNeuralNetworks: GNNHeteroGraph
-
+import Cairo
+import Fontconfig
 # Helper functions to handle Missing values and ensure correct types
 function convert_to_string(x)
     return !ismissing(x) ? string(x) : ""
@@ -184,7 +185,12 @@ end
 
 
 
-draw(PNG("soft_825_graph.png", 16cm, 16cm), gplot(g_viz2))
+l_s = unique(software_df[!,[:name,:id]])
+
+nodelabel = [l_s[l_s.id  .== id_s,:].name[1] for id_s in sg[2]]
+nodesize = fill(5, 20)
+
+draw(PNG("soft_825_graph.png", 50cm, 50cm), gplot(g_viz2, nodelabel=nodelabel, nodesize=nodesize))
 # Process the data into a HeteroData() object
 #try
 #    data = preprocess_heterodata(G, articles_dict, software_df)
