@@ -1,6 +1,8 @@
 [deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DrawSimpleGraphs = "1d51b185-1a84-59cf-b84e-03b0e3da30b7"
 GraphRecipes = "bd48cda9-67a9-57be-86fa-5b3c104eda73"
 GraphViz = "f526b714-d49f-11e8-06ff-31ed36ee7ee0"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"

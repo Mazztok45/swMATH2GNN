@@ -2,6 +2,8 @@ using DataFrames
 using Graphs
 using GraphPlot
 using Compose
+using StatsBase
+using Plots
 include("../GNN_Julia/hetero_data.jl")
 include("../extracting_data/extract_software_metadata.jl")
 using .HeteroDataProcessing
@@ -35,3 +37,11 @@ nodelabel = [l_s[l_s.id  .== id_s,:].name[1] for id_s in sg[2]]
 nodesize = fill(5, 20)
 
 draw(PNG("soft_825_graph.png", 50cm, 50cm), gplot(g_viz2, nodelabel=nodelabel, nodesize=nodesize))
+
+### MSC codes
+msc = unique(software_df[!,[:id, :classification]]).classification
+
+l = reduce(vcat, [split(elem, ";") for elem in msc])
+
+countmap(l)
+plot(countmap(l))
