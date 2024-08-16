@@ -2,8 +2,9 @@ using DataFrames
 using Graphs
 using GraphPlot
 using Compose
-using StatsBase
-using Plots
+import Compose: context as compose_context, font as compose_font, text as compose_text
+
+
 include("../GNN_Julia/hetero_data.jl")
 include("../extracting_data/extract_software_metadata.jl")
 using .HeteroDataProcessing
@@ -36,12 +37,11 @@ l_s = unique(software_df[!,[:name,:id]])
 nodelabel = [l_s[l_s.id  .== id_s,:].name[1] for id_s in sg[2]]
 nodesize = fill(5, 20)
 
-draw(PNG("soft_825_graph.png", 50cm, 50cm), gplot(g_viz2, nodelabel=nodelabel, nodesize=nodesize))
+graph_plot = gplot(g_viz2, nodelabel=nodelabel, nodesize=nodesize)
 
-### MSC codes
-msc = unique(software_df[!,[:id, :classification]]).classification
-
-l = reduce(vcat, [split(elem, ";") for elem in msc])
-
-countmap(l)
-plot(countmap(l))
+final_plot = compose(context(),
+    (context(), graph_plot),  # Your existing graph plot
+    (context(), text(0.27, 0.98, "Figure 1: Software Network for Software ID 825"), fontsize(20pt), font("sans-serif"))
+)
+# Save the final plot with the improved caption
+draw(PNG("soft_825_graph_with_caption_fixed.png", 30cm, 30cm), final_plot)
