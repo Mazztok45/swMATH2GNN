@@ -79,10 +79,7 @@ function extract_articles_metadata()
                         end
 
                     elseif key.first == :msc
-                        df_dict[:msc] = string(key.second)
-                        msc_dic = key.second
-                        println([dic.code[1:2] for dic in msc_dic])
-                        println(string(key.second))
+                        df_dict[:msc] = [dic.code[1:2] for dic in key.second]
                     elseif key.first == :references
                         if key.second != []
                             ref_ids = []
