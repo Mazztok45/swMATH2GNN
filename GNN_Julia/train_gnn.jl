@@ -52,11 +52,25 @@ println("Software DataFrame columns: ", names(software_df))
 #println("Articles Dict Keys: ", keys(articles_dict))
 #println("Software Dict Keys: ", keys(software_dict))
 
+u_soft = unique([dic[:software] for dic in articles_list_dict])
+
 related_soft = [collect(row)[1][2] for row in software_df.related_software]
 
 G = GNNHeteroGraph((:software,:relates_to, :software)=> (software_df.id, related_soft))
 
-GNNGraph(G, ndata = (x=rand(100, g.num_nodes), y=rand(g.num_nodes)))
+using PaddedViews  # for padding functionality
+
+# Determine the maximum size of any array
+
+node_features = [dic[:msc] for dic in articles_list_dict]
+
+pad_mat = (x=unique(node_features) .== permutedims(node_features))
+
+GNNHeteroGraph(G, ndata = pad_mat)
+
+
+
+
 # Process the data into a HeteroData() object
 #try
 #    data = preprocess_heterodata(G, articles_dict, software_df)
