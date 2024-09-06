@@ -30,7 +30,7 @@ function extract_articles_metadata()
             
             for item in result    
                 df_dict = Dict()
-                df_dict["software_id"] = strip(file, ['.json'])
+                df_dict["software_id"] = strip(file, ['.','j','s','o','n'])
                 for key in item
                     # Create unnested lists with necessary information from the nested json
                     # if value not available from API, save as "Not available"
