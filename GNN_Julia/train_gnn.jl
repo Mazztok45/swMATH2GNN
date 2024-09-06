@@ -6,23 +6,19 @@ using TextAnalysis
 using MultivariateStats
 using SparseArrays
 using StructTypes
-using TikzGraphs
 using Graphs
-using GraphPlot
-using GraphRecipes
-using Compose
 include("hetero_data.jl")
 include("../extracting_data/extract_software_metadata.jl")
+include("../extracting_data/extract_article_metadata.jl")
 using .HeteroDataProcessing
 using .DataReaderswMATH
 import .DataReaderswMATH: generate_software_dataframe
+import .DataReaderszbMATH: extract_articles_metadata
 import MultivariateStats: fit, KernelPCA
 import GraphNeuralNetworks: GNNHeteroGraph
-import Cairo
-import Fontconfig
 
 # Load full data into DataFrames
-articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
+#articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
 # Function to parse the `related_software` JSON strings
 
 
@@ -30,8 +26,9 @@ articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
 #software_df = CSV.read("./data/full_df.csv", DataFrame; types=Dict(:related_software => String))
 
 software_df  = generate_software_dataframe()
+articles_list_dict = extract_articles_metadata()
 # Print the column names of the DataFrames to verify
-println("Articles DataFrame columns: ", names(articles_df))
+#println("Articles DataFrame columns: ", names(articles_df))
 println("Software DataFrame columns: ", names(software_df))
 
 # Create Article instances

@@ -1,3 +1,4 @@
+module DataReaderszbMATH
 using JSON3
 using DataFrames
 using JSONTables
@@ -29,6 +30,7 @@ function extract_articles_metadata()
             
             for item in result    
                 df_dict = Dict()
+                df_dict["software_id"] = strip(file, ['.json'])
                 for key in item
                     # Create unnested lists with necessary information from the nested json
                     # if value not available from API, save as "Not available"
@@ -156,5 +158,7 @@ function dict_list_to_df(dict_list)
     CSV.write("./articles_metadata_collection/full_df.csv",df)
 end
 
-dict_list = extract_articles_metadata()
-df = dict_list_to_df(dict_list)
+#dict_list = extract_articles_metadata()
+#df = dict_list_to_df(dict_list)
+
+end
