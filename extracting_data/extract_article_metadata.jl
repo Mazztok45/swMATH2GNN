@@ -12,7 +12,7 @@ function extract_articles_metadata()
     :doi, :id, :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name, :subtitle, :text,
     :title, :year, :zbmath_url
     =#
-    files = readdir("./articles_metadata_collection")
+    files = readdir("./articles_metadata_collection")[1:8]
     df_list = []
     for file in files
         if endswith(file,".json")
@@ -79,7 +79,7 @@ function extract_articles_metadata()
                         end
 
                     elseif key.first == :msc
-                        df_dict[:msc] = [dic.code[1:2] for dic in key.second]
+                        df_dict[:msc] = [dic.code[1:1] for dic in key.second]
                     elseif key.first == :references
                         if key.second != []
                             ref_ids = []

@@ -56,7 +56,7 @@ related_soft = [collect(row)[1][2] for row in software_df.related_software]
 
 G = GNNHeteroGraph((:software,:relates_to, :software)=> (software_df.id, related_soft))
 
-
+GNNGraph(G, ndata = (x=rand(100, g.num_nodes), y=rand(g.num_nodes)))
 # Process the data into a HeteroData() object
 #try
 #    data = preprocess_heterodata(G, articles_dict, software_df)
