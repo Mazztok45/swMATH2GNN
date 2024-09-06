@@ -30,7 +30,7 @@ function extract_articles_metadata()
             
             for item in result    
                 df_dict = Dict()
-                df_dict["software_id"] = strip(file, ['.','j','s','o','n'])
+                df_dict[:software_id] = strip(file, ['.','j','s','o','n'])
                 for key in item
                     # Create unnested lists with necessary information from the nested json
                     # if value not available from API, save as "Not available"
@@ -63,7 +63,7 @@ function extract_articles_metadata()
 
                     elseif key.first == :language
                         lang =  key.second.languages
-                        df_dict["language"] = lang
+                        df_dict[:language] = lang
                     
                     elseif key.first == :links
                         if key.second != []
