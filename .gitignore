@@ -1,0 +1,51 @@
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.swp
+
+# Ignore backup files
+*.bak
+*.old
+*.orig
+
+# Ignore lock files
+*.lock
+
+# Ignore Julia-specific files
+Manifest.toml
+*.jl.cov
+.julia/
+
+# Ignore editor-specific files
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# Ignore build artifacts
+*.o
+*.a
+*.so
+*.dll
+*.exe
+
+# Ignore virtual environments
+.env/
+.venv/
+
+# Custom additions
+# Ignore articles_metadata_collection.tar.gz and directories
+articles_metadata_collection.tar.gz
+articles_metadata_collection/
+
+# Ignore data directory
+data/
+MSC_2020(5).csv
