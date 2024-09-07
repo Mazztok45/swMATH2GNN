@@ -2,55 +2,49 @@ using CSV
 using DataFrames
 using GraphNeuralNetworks
 using Flux
-using TextAnalysis
-using MultivariateStats
+#using TextAnalysis
+#using MultivariateStats
 using SparseArrays
 using StructTypes
 using Graphs
-include("hetero_data.jl")
+using Combinatorics
+#include("hetero_data.jl")
 include("../extracting_data/extract_software_metadata.jl")
 include("../extracting_data/extract_article_metadata.jl")
-using .HeteroDataProcessing
+#using .HeteroDataProcessing
 using .DataReaderswMATH
 import .DataReaderswMATH: generate_software_dataframe
 import .DataReaderszbMATH: extract_articles_metadata
-import MultivariateStats: fit, KernelPCA
+#import MultivariateStats: fit, KernelPCA
 import GraphNeuralNetworks: GNNHeteroGraph
 
-# Load full data into DataFrames
-#articles_df = CSV.read("./articles_metadata_collection/full_df.csv", DataFrame)
-# Function to parse the `related_software` JSON strings
-
-
-# Read the CSV file using the custom struct
-#software_df = CSV.read("./data/full_df.csv", DataFrame; types=Dict(:related_software => String))
-
 software_df  = generate_software_dataframe()
-articles_list_dict = extract_articles_metadata()
+
+#### FUNCTIONS THAT MUST BE KEPT
+#articles_list_dict = extract_articles_metadata()
+#node_features = [dic[:msc] for dic in articles_list_dict]
+###
+
+
+### Function to write articles MSC
+msc_vec = [join(elem,";") for elem in node_features]
+msc_str = join(msc_vec,'\n')
+open("msc.txt", "w") do file
+    write(file, msc_str)
+end
+###
+
+### Function to read articles msc
+node_features = map(x -> split(x,";"), split(read("msc.txt",String), '\n'))
+###
+
+####
+collect(combinations(node_features[3], 2))
+
+msc_df = CSV.read("MSC_2020(5).csv",DataFrame)
 # Print the column names of the DataFrames to verify
 #println("Articles DataFrame columns: ", names(articles_df))
 println("Software DataFrame columns: ", names(software_df))
-
-# Create Article instances
-#articles_dict = Dict{String, Article}()
-#for i in 1:nrow(articles_df)
-#    row = articles_df[i, :]
-#    article_instance = create_article(row)
-#    articles_dict[string(row[:id])] = article_instance
-#end
-
-# Create Software instances
-#software_dict = Dict{String, Software}()
-#for i in 1:nrow(software_df)
-#    row = software_df[i, :]
-#    software_instance = create_software(row)
-    #println(software_instance)
-#    software_dict[string(row[:id])] = software_instance
-#end
-
-# Print keys to verify dictionaries
-#println("Articles Dict Keys: ", keys(articles_dict))
-#println("Software Dict Keys: ", keys(software_dict))
 
 u_soft = unique([dic[:software] for dic in articles_list_dict])
 
@@ -62,7 +56,7 @@ using PaddedViews  # for padding functionality
 
 # Determine the maximum size of any array
 
-node_features = [dic[:msc] for dic in articles_list_dict]
+
 
 pad_mat = (x=unique(node_features) .== permutedims(node_features))
 
