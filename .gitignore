@@ -49,3 +49,8 @@ articles_metadata_collection/
 # Ignore data directory
 data/
 MSC_2020(5).csv
+art_soft.txt
+soft_enc.csv
+filt_rel_soft.csv
+msc_edges.csv
+msc_encoding_mat.csv
