@@ -20,7 +20,7 @@ import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
 using OneHotArrays
 using MLLabelUtils
 using StatsBase
-
+using Parquet2
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 #articles_list_dict = extract_articles_metadata()
@@ -83,12 +83,15 @@ ux = unique(reduce(vcat, df.msc))
 #### One hot array
 df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:msc_, ux))
 ### Changing the types
-for x in names(df_enc)[2:5509]
-    df_enc[!,x] = convert.(Int,df_enc[!,x])
-end
+#for x in names(df_enc)[2:5509]
+#    df_enc[!,x] = convert.(Int,df_enc[!,x])
+#end
 
-CSV.write("msc_encoding_mat.csv", df_enc[:,2:5509])
+#CSV.write("msc_encoding_mat.csv", df_enc[:,2:5509])
+file = tempname()*".parquet"
+write_parquet(file, df_enc[:,2:5509])
 
+Parquet2.writefile("GNN_Julia/msc_parquet/parquet", df_enc[:,2:5509])
 
 
 
