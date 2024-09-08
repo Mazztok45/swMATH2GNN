@@ -41,14 +41,14 @@ cat_nodes_enc=DataFrame(CSV.File("msc_edges.csv")).col2
 data = ((:software,:relates_to, :software)=> (filt_rel_soft.col1, filt_rel_soft.col2),
 (:msc,:parent_cat,:msc)=>(maj_cat_enc, cat_nodes_enc))
 
-num_nodes = Dict(:msc => 5571, :software => size(unique(vcat(filt_rel_soft.col1,filt_rel_soft.col2)))[1]
-)
+num_nodes = Dict(:msc => 5571, :software => 32807)#size(unique(vcat(filt_rel_soft.col1,filt_rel_soft.col2)))[1]
+
 
 soft_enc = map(x->parse(Int64,x),split(read("soft_enc.csv",String), '\n'))
 
 
 soft_mat = permutedims(unique(soft_enc) .== permutedims(soft_enc))
 
-ndata=Dict(:msc => (x = msc_encoding()),:software =>(y=soft_mat))
+ndata=Dict(:msc => (x = msc_encoding()),:software =>(y=Matrix(soft_mat)))
 
 G = GNNHeteroGraph(data; num_nodes, ndata)

@@ -96,6 +96,8 @@ for (i, vector) in enumerate(enc_node_features)
     end
 end
 
+dense_one_hot = Matrix(one_hot_matrix)
+
 df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
 
 #### One hot array
