@@ -80,7 +80,7 @@ enc_node_features=[map(x -> enc.invlabel[x], y) for y in new_nodes_features]
 
 df = DataFrame(msc=enc_node_features)
 ux = unique(reduce(vcat, df.msc))
-
+sort!(ux)
 value_to_index = Dict(value => i for (i, value) in enumerate(ux))
 
 n_rows = size(df)[1]
@@ -96,9 +96,10 @@ for (i, vector) in enumerate(enc_node_features)
     end
 end
 
+df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
 
 #### One hot array
-df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:msc_, ux))
+#df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:msc_, ux))
 ### Changing the types
 #for x in names(df_enc)[2:5509]
 #    df_enc[!,x] = convert.(Int,df_enc[!,x])
@@ -109,7 +110,7 @@ df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:ms
 #write_parquet(file, df_enc[:,2:5509])
 
 #Parquet2.writefile("GNN_Julia/msc_parquet/parquet", df_enc[:,2:5509])
-Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc[:,2:5509])
+Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc)
 
 
 
