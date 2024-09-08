@@ -56,3 +56,4 @@ msc_edges.csv
 msc_encoding_mat.csv
 msc.txt
 GNN_Julia/msc_parquet/
+GNN_Julia/msc_arrow/arrow

@@ -20,7 +20,7 @@ import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
 using OneHotArrays
 using MLLabelUtils
 using StatsBase
-using Parquet2
+using Arrow
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 #articles_list_dict = extract_articles_metadata()
@@ -80,6 +80,23 @@ enc_node_features=[map(x -> enc.invlabel[x], y) for y in new_nodes_features]
 
 df = DataFrame(msc=enc_node_features)
 ux = unique(reduce(vcat, df.msc))
+
+value_to_index = Dict(value => i for (i, value) in enumerate(ux))
+
+n_rows = size(df)[1]
+n_columns = length(ux)
+
+one_hot_matrix = spzeros(Int, n_rows, n_columns)
+
+# Populate the matrix with 1s where needed
+for (i, vector) in enumerate(enc_node_features)
+    for value in vector
+        column_index = value_to_index[value]
+        one_hot_matrix[i, column_index] = 1
+    end
+end
+
+
 #### One hot array
 df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:msc_, ux))
 ### Changing the types
@@ -88,11 +105,11 @@ df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:ms
 #end
 
 #CSV.write("msc_encoding_mat.csv", df_enc[:,2:5509])
-file = tempname()*".parquet"
-write_parquet(file, df_enc[:,2:5509])
+#file = tempname()*".parquet"
+#write_parquet(file, df_enc[:,2:5509])
 
-Parquet2.writefile("GNN_Julia/msc_parquet/parquet", df_enc[:,2:5509])
-
+#Parquet2.writefile("GNN_Julia/msc_parquet/parquet", df_enc[:,2:5509])
+Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc[:,2:5509])
 
 
 

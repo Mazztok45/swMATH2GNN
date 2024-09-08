@@ -20,10 +20,13 @@ import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
 using OneHotArrays
 using MLLabelUtils
 using StatsBase
-
+using Arrow
 ##### GRAPH PREP
+
+#ds = Parquet2.Dataset("GNN_Julia/msc_parquet/parquet")
+#df = DataFrame(ds; copycols=false)
 function msc_encoding()
-    return Matrix(DataFrame(CSV.File("msc_encoding_mat.csv")))
+    return Matrix(DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow")))
 end
 
 
