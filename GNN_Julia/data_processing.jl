@@ -1,13 +1,13 @@
 using CSV
 using DataFrames
-using GraphNeuralNetworks
-using Flux
+#using GraphNeuralNetworks
+#using Flux
 #using TextAnalysis
 #using MultivariateStats
 using SparseArrays
-using StructTypes
-using Graphs
-using Combinatorics
+#using StructTypes
+#using Graphs
+#using Combinatorics
 #include("hetero_data.jl")
 include("../extracting_data/extract_software_metadata.jl")
 include("../extracting_data/extract_article_metadata.jl")
@@ -16,8 +16,8 @@ using .DataReaderswMATH
 import .DataReaderswMATH: generate_software_dataframe
 import .DataReaderszbMATH: extract_articles_metadata
 #import MultivariateStats: fit, KernelPCA
-import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
-using OneHotArrays
+#import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
+#using OneHotArrays
 using MLLabelUtils
 using StatsBase
 using Arrow
