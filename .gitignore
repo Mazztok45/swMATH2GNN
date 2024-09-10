@@ -57,3 +57,4 @@ msc_encoding_mat.csv
 msc.txt
 GNN_Julia/msc_parquet/
 GNN_Julia/msc_arrow/arrow
+GNN_Julia/msc_arrow/arrow_msc_to_soft
