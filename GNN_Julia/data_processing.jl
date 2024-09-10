@@ -126,6 +126,36 @@ enc_soft=labelenc(art_soft)
 soft_enc=map(x -> enc_soft.invlabel[x],art_soft)
 
 
+#####CHATGPT - MSC to software mapping
+function collect_msc_to_soft(enc_node_features, soft_enc)
+    # Estimate the size for the edge list if possible
+    total_edges = sum(length(l_msc) for l_msc in enc_node_features)  # Total expected number of edges
+
+    # Preallocate storage for edges (MSC -> Software pairs)
+    msc_to_soft = Vector{Vector{Int}}(undef, total_edges)
+
+    # Track index
+    edge_index = 1
+
+    # Build the edge list
+    for (i, soft) in enumerate(soft_enc)
+        l_msc = enc_node_features[i]  # Get MSC codes for this software
+        for msc in l_msc
+            msc_to_soft[edge_index] = [msc, soft]
+            edge_index += 1
+        end
+    end
+
+    return msc_to_soft
+end
+
+# Example usage
+# enc_node_features: Vector of Vectors where each inner vector holds MSC codes for a paper/software
+# soft_enc: Vector of software labels corresponding to each paper/software
+msc_to_soft = collect_msc_to_soft(enc_node_features, soft_enc)
+Arrow.write("GNN_Julia/msc_arrow/arrow_msc_to_soft", DataFrame(mapreduce(permutedims, vcat, msc_to_soft), :auto))
+#####CHATGPT END
+
 soft_enc_str = join(soft_enc,'\n')
 open("soft_enc.csv", "w") do file
     write(file, soft_enc_str)
@@ -139,6 +169,8 @@ related_soft = [collect(row)[1][2] for row in software_df.related_software]
 
 df_rel_soft=DataFrame(col1=software_df.id, col2=related_soft)
 filt_rel_soft = filter(row -> row.col1 in u_soft && row.col2 in u_soft, df_rel_soft)
-
+filt_rel_soft.col1= string.(filt_rel_soft.col1)
+filt_rel_soft.col2= string.(filt_rel_soft.col2)
+filt_rel_soft = DataFrame(col1=map(x -> enc_soft.invlabel[x],filt_rel_soft.col1), col2=map(x -> enc_soft.invlabel[x],filt_rel_soft.col2))
 CSV.write("filt_rel_soft.csv", filt_rel_soft )
 
