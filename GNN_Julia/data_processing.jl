@@ -23,12 +23,25 @@ using StatsBase
 using Arrow
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
-#articles_list_dict = extract_articles_metadata()
+articles_list_dict = extract_articles_metadata()
 
 #node_features = [dic[:msc] for dic in articles_list_dict]
 #art_soft = [dic[:software] for dic in articles_list_dict]
+refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+paper_id_soft = [dic[:id] for dic in articles_list_dict]
 ###
+filt_refs_soft = Vector{Vector}()
+for refs_soft_l in refs_soft
+    isempty(refs_soft_l)==false
+        for pap in refs_soft_l
+            if pap in paper_id_soft
+                push!(filt_refs_soft, pap)
+            end
+        end
+    end
+end
 
+[pap in refs_soft for pap in paper_id_soft[1]]
 
 ### Function to write articles MSC
 #msc_vec = [join(elem,";") for elem in node_features]

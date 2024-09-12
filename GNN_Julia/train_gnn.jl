@@ -46,7 +46,7 @@ cat_nodes_enc=DataFrame(CSV.File("msc_edges.csv")).col2
 
 soft_enc = map(x->parse(Int64,x),split(read("soft_enc.csv",String), '\n'))
 
-num_nodes = Dict(:msc => 5571, :software => 35220, :paper => 332669)#size(unique(vcat(filt_rel_soft.col1,filt_rel_soft.col2)))[1]
+num_nodes = Dict(:software => 35220, :paper => 332669,:msc => 5571)#size(unique(vcat(filt_rel_soft.col1,filt_rel_soft.col2)))[1]
 
 rand_paper_id = [1:332669;]
 msc_to_soft = DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow_msc_to_soft"))
@@ -61,10 +61,11 @@ data = ((:software,:relates_to, :software)=> (filt_rel_soft.col1, filt_rel_soft.
 #soft_mat = permutedims(unique(soft_enc) .== permutedims(soft_enc))
 
 ### x dim is (332669, 5571) and y dim (332669, 35220)
+msc_features_np=Matrix{Float32}(msc_encoding())
 msc_features=permutedims(Matrix{Float32}(msc_encoding()))
 #soft_enc=permutedims(soft_enc)
 
-ndata=Dict(:paper => (x = msc_features,y=soft_enc))
+ndata=Dict(:paper => (x =msc_features_np,y=soft_enc))
 G = GNNHeteroGraph(data; num_nodes, ndata) 
 
 function random_mask()
@@ -131,12 +132,22 @@ function train(; kws...)
     ytrain = y[:, train_mask]
 
     nin, nhidden, nout = size(X, 1), args.nhidden, length(classes)
-
+    println(nin)
+    println(nhidden)
     ## DEFINE MODEL
-    model = GNNChain(GCNConv(nin => nhidden, relu),
-                     GCNConv(nhidden => nhidden, relu),
-                     Dense(nhidden, nout)) |> device
+    #model = GNNChain(GCNConv(nin => nhidden; relu),
+    #        GCNConv(nhidden => nhidden; relu),
+    #                 Dense(nhidden, nout)) |> device
 
+    layer = HeteroGraphConv(
+            (:paper, :p2s, :software) => GraphConv(5571 => 128, relu)
+                     );
+    
+    nx=permutedims(G.ndata[:paper].x)
+    y=layer(G,(paper=nx,software=G.ndata[:paper].y))
+
+                        
+    model=GNNChain(layer)
     opt = Flux.setup(Adam(args.η), model)
 
     display(G) #display(g)
