@@ -58,3 +58,5 @@ msc.txt
 GNN_Julia/msc_parquet/
 GNN_Julia/msc_arrow/arrow
 GNN_Julia/msc_arrow/arrow_msc_to_soft
+GNN_Julia/papers_edges_arrow
+msc_paper_id.txt

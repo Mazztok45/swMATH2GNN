@@ -25,30 +25,62 @@ using Arrow
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 articles_list_dict = extract_articles_metadata()
 
-#node_features = [dic[:msc] for dic in articles_list_dict]
-#art_soft = [dic[:software] for dic in articles_list_dict]
+node_features = [dic[:msc] for dic in articles_list_dict]
+art_soft = [dic[:software] for dic in articles_list_dict]
 refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+refs_soft = filter!(x -> x != nothing,refs_soft)
+refs_soft = Vector{Vector{Any}}(refs_soft)
 paper_id_soft = [dic[:id] for dic in articles_list_dict]
 ###
 filt_refs_soft = Vector{Vector}()
 for refs_soft_l in refs_soft
-    isempty(refs_soft_l)==false
-        for pap in refs_soft_l
-            if pap in paper_id_soft
-                push!(filt_refs_soft, pap)
-            end
+    l_pap = []
+    for pap in refs_soft_l
+        if pap in paper_id_soft
+            push!(l_pap, pap)
         end
     end
+    push!(filt_refs_soft, l_pap)
 end
 
-[pap in refs_soft for pap in paper_id_soft[1]]
+paper_id_l = Vector()
+refs_id_l = Vector()
+software_id_l = Vector()
+for (i, j) in enumerate(filt_refs_soft)
+    map(x->push!(refs_id_l,x),j)
+    map(x->push!(paper_id_l,paper_id_soft[i]),j)
+    map(x->push!(software_id_l,art_soft[i]),j)
+end
+
+
+refs_df = unique(sort!(DataFrame(paper_id=paper_id_l,ref_id=refs_id_l,software=software_id_l)))
+Arrow.write("GNN_Julia/papers_edges_arrow/papers_edges_arrow", refs_df)
+
+
+
 
 ### Function to write articles MSC
-#msc_vec = [join(elem,";") for elem in node_features]
-#msc_str = join(msc_vec,'\n')
-#open("msc.txt", "w") do file
-#    write(file, msc_str)
-#end
+nodes_df=DataFrame(col1=paper_id_soft,col2=node_features)
+
+gdf = groupby(nodes_df, :col1)
+
+grouped_concat = combine(gdf, :col2 => (x -> vcat(x...)) => :concatenated_list)
+
+gdf2= groupby(grouped_concat, :col1)
+
+grouped_nodes=combine(gdf2, :concatenated_list=> (x -> join(x, ";")) => :concatenated_list)
+
+#msc_vec = [join(elem,";") for elem in grouped_nodes.concatenated_list]
+msc_str = join(grouped_nodes.concatenated_list,'\n')
+open("msc.txt", "w") do file
+    write(file, msc_str)
+end
+
+
+msc_str = join(grouped_nodes.col1,'\n')
+open("msc_paper_id.txt", "w") do file
+    write(file, msc_str)
+end
 ###
 
 ### Function to write articles articles software labels
@@ -83,7 +115,6 @@ maj_cat = filter!(!isempty,unique(reduce(vcat, maj_cat_vector)))
 enc=labelenc(cat_nodes)
 cat_nodes_enc=map(x -> enc.invlabel[x],cat_nodes)
 maj_cat_enc=map(x -> enc.invlabel[x],map(x -> x[1:2],cat_nodes))
-DataFrame(col1=maj_cat_enc,col2=cat_nodes_enc)
 
 CSV.write("msc_edges.csv", DataFrame(col1=maj_cat_enc,col2=cat_nodes_enc))
 
