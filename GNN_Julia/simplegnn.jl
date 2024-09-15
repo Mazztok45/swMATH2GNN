@@ -1,6 +1,6 @@
 # An example of semi-supervised node classification
 using Flux
-using Flux: onecold, onehotbatch
+using Flux: onecold, onehotbatch, onehot
 using Flux.Losses: logitcrossentropy
 using GraphNeuralNetworks
 using MLDatasets: Cora
@@ -39,57 +39,109 @@ end
 
 
 pi_int = parse.(Int, split(read("msc_paper_id.txt",String), '\n'))
+unique_paper_ids = Set(unique(pi_int))
 
 function paper_edges()
     return DataFrame(Arrow.Table("GNN_Julia/papers_edges_arrow/papers_edges_arrow"))
 end
 
-refs_df=paper_edges()
-
-hcat_df=hcat(pi_int, msc_encoding())
-
-unique_paper_ids = Set(unique(hcat_df.x1))
 
 
-filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(refs_df[!,[:paper_id,:software]]))
 
-grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => collect => :software_array)
+filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(paper_edges()[!,[:paper_id,:software]]))
+
+grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x -> collect(x) => :software_array)
 
 
 # Extract the software arrays from the first element of each pair
 software_arrays = [pair.first for pair in grouped_by_paper_id.software_function]
 
+# Cleaning the memory
+pi_int=nothing
+unique_paper_ids =nothing
+filtered_data =nothing
+grouped_by_paper_id=nothing
+
+GC.gc()
+
+# Collect all unique software labels
+all_software_labels = unique(vcat(software_arrays...))
+
+# Map each software label to a unique index
+label_to_index = Dict(label => i for (i, label) in enumerate(all_software_labels))
 
 
-### CODE GOOD UNTIL THERE !!
+# Number of unique software labels
+num_labels = length(all_software_labels)
 
-num_nodes = Dict(:paper => 146346) #size(unique(vcat(filt_rel_soft.col1,filt_rel_soft.col2)))[1]
+# Initialize an empty array to store multi-hot vectors
+multi_hot_encoded = Vector{Vector{Int}}()
 
-
-data = (
-(:paper,:cited_by,:paper)=>(Vector(paper_edges_df.ref_id), Vector(paper_edges_df.paper_id))
-)
-
-
-grouped_data = Dict{Int, Vector{Int}}()
-refs_df.paper_id=Int.(refs_df.paper_id)
-refs_df.software=map(x -> parse(Int, x), refs_df.software)
-
-
-for row in eachrow(refs_df)
-    key = row[:paper_id]
-    value = row[:software]
+# Loop through each array of software labels in software_arrays
+for software_list in software_arrays
+    # Create a zero vector of length equal to the number of unique labels
+    one_hot_vector = zeros(Int, num_labels)
     
-    if haskey(grouped_data, key)
-        push!(grouped_data[key], value)
-    else
-        grouped_data[key] = [value]
+    # For each software in the list, set the corresponding index in the one-hot vector to 1
+    for software in software_list
+        idx = label_to_index[software]
+        one_hot_vector[idx] = 1
+    end
+    
+    # Append the multi-hot encoded vector to the list
+    push!(multi_hot_encoded, one_hot_vector)
+end
+
+#######
+# Initialize a BitArray with the dimensions (num_labels × number of papers)
+num_labels = length(all_software_labels)
+num_papers = length(software_arrays)
+
+# Create an uninitialized BitArray (BitMatrix)
+multi_hot_matrix = BitArray(undef, num_labels, num_papers)
+
+# Loop through each array of software labels in software_arrays
+for (i, software_list) in enumerate(software_arrays)
+    # For each software in the list, set the corresponding index in the BitArray to true (1)
+    for software in software_list
+        idx = label_to_index[software]
+        multi_hot_matrix[idx, i] = true  # Set the bit to true
     end
 end
-soft_mat= Vector{Vector}()
-for key in keys(grouped_data)
-    push!(soft_mat,grouped_data[key])
-end
+
+
+Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
+# Display one of the multi-hot encoded vectors for checking
+#println(multi_hot_encoded[1])
+
+
+selected_paper_id=Set(unique(grouped_by_paper_id.paper_id))
+
+sd = setdiff(unique_paper_ids,selected_paper_id)
+
+hcat_df=hcat(unique_paper_ids, msc_encoding())
+
+filtered_msc = filter(row -> !(row.x1  in sd), hcat_df)
+
+Arrow.write("GNN_Julia/filtered_msc ",filtered_msc )
+
+
+refs_df=paper_edges()
+
+filtered_edges = filter(row -> (row.paper_id in unique_paper_ids  && !(row. paper_id  in sd)), unique(refs_df[!,[:paper_id,:ref_id]]))
+
+
+
+
+# Assuming l is a list of ref_ids
+l = unique(filtered_edges.paper_id)
+# Convert l to a Set for efficient membership checking
+l_set = Set(l)
+# Create refs_id2 by iterating through each row
+filtered_edges.refs_id2 = [row.ref_id in l_set ? row.ref_id : row.paper_id for row in eachrow(filtered_edges)]
+
+
+Arrow.write("GNN_Julia/filtered_edges", filtered_edges)
 
 
 
@@ -100,8 +152,8 @@ end
 
 function random_mask()
     at=0.7
-    n = size(rand_paper_id,1)
-    vec=shuffle(rand_paper_id)
+    n = size(filtered_edges.paper_id,1)
+    vec=shuffle(filtered_edges.paper_id)
     train_idx = view(vec, 1:floor(Int, at*n))
     #test_idx = view(vec, (floor(Int, at*n)+1):n)
     n_train=size(train_idx,1)
@@ -115,8 +167,25 @@ function random_mask()
     return train_mask, test_mask
 end
 
-ndata=Dict(:paper => (x =msc_features_np,y=soft_enc))
-G = GNNHeteroGraph(data; num_nodes, features, train_mask,test_mask) 
+train_mask, test_mask = random_mask()
+
+Arrow.write("GNN_Julia/random_mask", DataFrame(train_mask=train_mask,test_mask=test_mask))
+
+
+
+
+#### MODEL PART
+
+
+num_nodes = Dict(:paper => 146346)
+
+data = (
+(:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id))
+)
+
+
+ndata=Dict(:paper => (features = filtered_msc, targets=multi_hot_encoded))
+G = GNNGraph(data; num_nodes, ndata, train_mask,test_mask) 
 
 
 
