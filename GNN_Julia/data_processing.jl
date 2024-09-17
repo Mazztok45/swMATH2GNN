@@ -21,6 +21,7 @@ import .DataReaderszbMATH: extract_articles_metadata
 using MLLabelUtils
 using StatsBase
 using Arrow
+using Serialization
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 articles_list_dict = extract_articles_metadata()
@@ -140,23 +141,13 @@ for (i, vector) in enumerate(enc_node_features)
     end
 end
 
-dense_one_hot = Matrix(one_hot_matrix)
+dense_one_hot = BitArray(Matrix(one_hot_matrix))
 
-df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
+serialize("dense_one_hot.jls",dense_one_hot)
 
-#### One hot array
-#df_enc = transform(df, :msc .=> [ByRow(v -> x in v) for x in ux] .=> Symbol.(:msc_, ux))
-### Changing the types
-#for x in names(df_enc)[2:5509]
-#    df_enc[!,x] = convert.(Int,df_enc[!,x])
-#end
+#df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
 
-#CSV.write("msc_encoding_mat.csv", df_enc[:,2:5509])
-#file = tempname()*".parquet"
-#write_parquet(file, df_enc[:,2:5509])
-
-#Parquet2.writefile("GNN_Julia/msc_parquet/parquet", df_enc[:,2:5509])
-Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc)
+#Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc)
 
 
 

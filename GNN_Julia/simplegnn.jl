@@ -30,9 +30,14 @@ import GraphNeuralNetworks: GNNHeteroGraph, GNNGraphs
 using MLLabelUtils
 using StatsBase
 using Arrow
+using Serialization
+
+
+
 
 function msc_encoding()
-    return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
+    #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
+    return deserialize("dense_one_hot.jls")
 end
 
 #msc_features_np=Matrix{Float32}(msc_encoding())
@@ -75,22 +80,22 @@ label_to_index = Dict(label => i for (i, label) in enumerate(all_software_labels
 num_labels = length(all_software_labels)
 
 # Initialize an empty array to store multi-hot vectors
-multi_hot_encoded = Vector{Vector{Int}}()
+#multi_hot_encoded = Vector{Vector{Int}}()
 
 # Loop through each array of software labels in software_arrays
-for software_list in software_arrays
+#for software_list in software_arrays
     # Create a zero vector of length equal to the number of unique labels
-    one_hot_vector = zeros(Int, num_labels)
+#    one_hot_vector = zeros(Int, num_labels)
     
     # For each software in the list, set the corresponding index in the one-hot vector to 1
-    for software in software_list
-        idx = label_to_index[software]
-        one_hot_vector[idx] = 1
-    end
+#    for software in software_list
+#        idx = label_to_index[software]
+#        one_hot_vector[idx] = 1
+#    end
     
     # Append the multi-hot encoded vector to the list
-    push!(multi_hot_encoded, one_hot_vector)
-end
+#    push!(multi_hot_encoded, one_hot_vector)
+#end
 
 #######
 # Initialize a BitArray with the dimensions (num_labels × number of papers)
@@ -109,8 +114,10 @@ for (i, software_list) in enumerate(software_arrays)
     end
 end
 
+multi_hot_matrix=permutedims(multi_hot_matrix)
 
-Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
+serialize("mutli_hot_matrix.jls",multi_hot_matrix)
+#Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
 # Display one of the multi-hot encoded vectors for checking
 #println(multi_hot_encoded[1])
 
@@ -119,19 +126,25 @@ selected_paper_id=Set(unique(grouped_by_paper_id.paper_id))
 
 sd = setdiff(unique_paper_ids,selected_paper_id)
 
-hcat_df=hcat(unique_paper_ids, msc_encoding())
-
-filtered_msc = filter(row -> !(row.x1  in sd), hcat_df)
-
-Arrow.write("GNN_Julia/filtered_msc ",filtered_msc )
+vec_u = collect(unique_paper_ids)
 
 
+l_ind = [i for (i,j) in enumerate(vec_u) if !(j in sd)]
+
+filtered_msc =  msc_encoding()[l_ind,:]
+
+serialize("filtered_msc.jls",filtered_msc)
+
+#Arrow.write("GNN_Julia/filtered_msc",filtered_msc)
+
+
+
+
+
+### ADAPT THE EDGES
 refs_df=paper_edges()
 
-filtered_edges = filter(row -> (row.paper_id in unique_paper_ids  && !(row. paper_id  in sd)), unique(refs_df[!,[:paper_id,:ref_id]]))
-
-
-
+filtered_edges = filter(row -> (row.paper_id in unique_paper_ids  && !(row.paper_id  in sd)), unique(paper_edges()[!,[:paper_id,:ref_id]]))
 
 # Assuming l is a list of ref_ids
 l = unique(filtered_edges.paper_id)
@@ -141,19 +154,21 @@ l_set = Set(l)
 filtered_edges.refs_id2 = [row.ref_id in l_set ? row.ref_id : row.paper_id for row in eachrow(filtered_edges)]
 
 
+
 Arrow.write("GNN_Julia/filtered_edges", filtered_edges)
 
 
+######## SPLITING MASKS
 
 
 
-
+filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 
 
 function random_mask()
     at=0.7
-    n = size(filtered_edges.paper_id,1)
-    vec=shuffle(filtered_edges.paper_id)
+    n = size(grouped_by_paper_id.paper_id,1)
+    vec=shuffle(grouped_by_paper_id.paper_id)
     train_idx = view(vec, 1:floor(Int, at*n))
     #test_idx = view(vec, (floor(Int, at*n)+1):n)
     n_train=size(train_idx,1)
@@ -168,8 +183,9 @@ function random_mask()
 end
 
 train_mask, test_mask = random_mask()
-
-Arrow.write("GNN_Julia/random_mask", DataFrame(train_mask=train_mask,test_mask=test_mask))
+serialize("train_mask.jls",train_mask)
+serialize("test_mask.jls",test_mask)
+#Arrow.write("GNN_Julia/random_mask", DataFrame(train_mask=train_mask,test_mask=test_mask))
 
 
 
@@ -177,17 +193,44 @@ Arrow.write("GNN_Julia/random_mask", DataFrame(train_mask=train_mask,test_mask=t
 #### MODEL PART
 
 
+
+filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
+multi_hot_matrix= deserialize("mutli_hot_matrix.jls")
+filtered_msc= deserialize("filtered_msc.jls")
+train_mask = deserialize("train_mask.jls")
+test_mask = deserialize("test_mask.jls")
+
+#DataFrame(Arrow.Table(Arrow.read("GNN_Julia/random_mask"))).train_mask, DataFrame(Arrow.Table(Arrow.read("GNN_Julia/random_mask"))).test_mask
+
+
+
+
 num_nodes = Dict(:paper => 146346)
 
-data = (
-(:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id))
-)
+#data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
+
+data = unique(DataFrame(hcat(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)), :auto))
 
 
-ndata=Dict(:paper => (features = filtered_msc, targets=multi_hot_encoded))
-G = GNNGraph(data; num_nodes, ndata, train_mask,test_mask) 
+# Combine all node IDs and find unique ones
+all_nodes = unique(vcat(data.x1, data.x2))
+
+# Create a dictionary to map old node IDs to new sequential IDs
+node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
+
+# Remap the node IDs in your data
+new_x1 = [node_map[node] for node in data.x1]
+new_x2 = [node_map[node] for node in data.x2]
+
+# Create a new GNNGraph with remapped node IDs
+g = GNNGraph(new_x1, new_x2)
 
 
+ndata=(features = permutedims(filtered_msc), targets=permutedims(multi_hot_matrix), train_mask=train_mask, test_mask=test_mask)
+
+
+
+g = GNNGraph(g, ndata=ndata)
 
 
 function eval_loss_accuracy(X, y, mask, model, g)
@@ -222,14 +265,14 @@ function train(; kws...)
     end
 
     # LOAD DATA
-    dataset = Cora()
-    classes = dataset.metadata["classes"]
-    g = mldataset2gnngraph(dataset) |> device
+    #dataset = Cora()
+    #classes = dataset.metadata["classes"]
+    #g = mldataset2gnngraph(dataset) |> device
     X = g.features
-    y = onehotbatch(g.targets |> cpu, classes) |> device # remove when https://github.com/FluxML/Flux.jl/pull/1959 tagged
+    y = g.targets #onehotbatch(g.targets |> cpu, classes) |> device # remove when https://github.com/FluxML/Flux.jl/pull/1959 tagged
     ytrain = y[:, g.train_mask]
 
-    nin, nhidden, nout = size(X, 1), args.nhidden, length(classes)
+    nin, nhidden, nout = size(X, 1), args.nhidden, length(values(label_to_index))
 
     ## DEFINE MODEL
     model = GNNChain(GCNConv(nin => nhidden, relu),
@@ -262,3 +305,4 @@ function train(; kws...)
 end
 
 train()
+
