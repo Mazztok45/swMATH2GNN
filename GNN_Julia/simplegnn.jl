@@ -33,6 +33,7 @@ using Arrow
 using Serialization
 using NearestNeighbors
 using JLD2
+using Metis
 
 
 
@@ -403,6 +404,8 @@ end
 
 
 
+
+
 function keys_for_value(dict::Dict, val)
     return [k for k in keys(dict) if dict[k] == val]
 end
@@ -431,16 +434,28 @@ println(filtered_edges)
 
 
 
-
 ############################
+c=combine(first,groupby(filtered_edges[:,[:paper_id,:refs_id2]], :paper_id))
+
+
+# Combine all node IDs and find unique ones
+all_nodes = unique(vcat(c[:,:refs_id2], c[:,:paper_id]))
+
+# Create a dictionary to map old node IDs to new sequential IDs
+node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
+
+# Remap the node IDs in your data
+new_x1 = [node_map[node] for node in c[:,:paper_id]]
+new_x2 = [node_map[node] for node in c[:,:refs_id2]]
+
 
 
 
 ### GNN initialization
 
-g = GNNGraph(new_x1, new_x2)
+g = GNNGraph(new_x1,new_x2)
 
-ndata=(features = reduced_data,  train_mask=train_mask, test_mask=test_mask)
+ndata=(features = Float32.(reduced_data),  train_mask=train_mask, test_mask=test_mask, target=rand(Float32, 1, num_papers))
 
 
 
@@ -450,7 +465,7 @@ g = GNNGraph(g, ndata=ndata)
 
 function eval_loss_accuracy(X, y, mask, model, g)
     ŷ = model(g, X)
-    l = logitcrossentropy(ŷ[:, mask], y[:, mask])
+    l = logitcrossentropy(ŷ[:, mask], y[:, mask])[ Info: Training on CPU
     acc = mean(onecold(ŷ[:, mask]) .== onecold(y[:, mask]))
     return (loss = round(l, digits = 4), acc = round(acc * 100, digits = 2))
 end
@@ -492,7 +507,7 @@ function train(; kws...)
     #classes = dataset.metadata["classes"]
     #g = mldataset2gnngraph(dataset) |> device
     X = g.features
-    y = rand(Float32, 1, num_papers) #rand(Float, num_labels, num_papers) #random_one_hot_matrix #onehotbatch(g.targets |> cpu, classes) |> device # remove when https://github.com/FluxML/Flux.jl/pull/1959 tagged
+    y = g.target #rand(Float, num_labels, num_papers) #random_one_hot_matrix #onehotbatch(g.targets |> cpu, classes) |> device # remove when https://github.com/FluxML/Flux.jl/pull/1959 tagged
     ytrain = y[:, g.train_mask]
 
     nin, nhidden, nout = size(X, 1), args.nhidden, num_labels
@@ -529,3 +544,152 @@ end
 
 train()
 
+
+
+
+
+
+#########################################CHATGPT
+# Evaluation function for regression tasks (MSE and MAE)
+
+# Evaluation function for regression tasks (MSE and MAE)
+function eval_loss_accuracy(X, y, mask, model, g)
+    ŷ = model(g, X)
+
+    #println(ŷ[mask])
+    #println(Float32.(y[mask]))
+    # Compute MSE loss between reshaped `y` and `ŷ`
+    l = Flux.mse(ŷ[mask],Float32.(y[mask]); agg = mean)
+
+    return round(l, digits = 4)
+end
+
+
+# Arguments structure for the train function
+# Rename Args to avoid redefinition error
+Base.@kwdef mutable struct TrainingArgs
+    η = 1.0f-3             # learning rate
+    epochs = 100           # number of epochs
+    seed = 17              # set seed > 0 for reproducibility
+    usecuda = true         # if true use cuda (if available)
+    nhidden = 128          # dimension of hidden features
+    batch_size = 128       # batch size for mini-batch training
+    infotime = 10          # report every `infotime` epochs
+end
+
+# Function to partition the graph into batches of nodes
+function create_batches(g, batch_size)
+    # Create batches of node indices for mini-batch training
+    node_ids = collect(1:g.num_nodes)
+    shuffle!(node_ids)  # Shuffle the node indices to randomize batches
+    return [node_ids[i:min(i + batch_size - 1, length(node_ids))]
+            for i in 1:batch_size:length(node_ids)]
+end
+
+# Function to extract a subgraph and features from a batch of node indices
+# Function to extract a subgraph and features from a batch of node indices
+# Updated function to extract a subgraph and features from a batch of node indices
+# Function to extract a subgraph and features from a batch of node indices
+function extract_subgraph(g, node_batch)
+    # Ensure we are using correct indexing for node features and targets
+    X_batch = g.features[:, node_batch]  # Features may still be a matrix
+
+    # For target values, make sure we index using one dimension
+    y_batch = g.targets[node_batch]
+
+    # Get the edges involving only nodes in the batch
+    edge_batch = filter(e -> e.src in node_batch && e.dst in node_batch, edges(g))
+
+    # Extract the source and target nodes from the edge_batch
+    if isempty(edge_batch)
+        src_nodes, dst_nodes = Int[], Int[]
+    else
+        src_nodes = map(e -> e.src, edge_batch)
+        dst_nodes = map(e -> e.dst, edge_batch)
+    end
+
+    # Check that the lengths of src_nodes and dst_nodes are equal
+    @assert length(src_nodes) == length(dst_nodes) "Mismatch in the number of source and target nodes."
+    println(size(src_nodes))
+    println(size(dst_nodes))
+    # Create the subgraph using the extracted nodes and edges
+    subgraph = GNNGraph(src_nodes, dst_nodes)
+
+    # Add the batch node features and target values to the GNNGraph
+    subgraph.ndata = Dict(
+        :features => X_batch,
+        :targets => y_batch
+    )
+
+    return subgraph, X_batch, y_batch
+end
+
+
+
+# Main training function with batching
+function train(; kws...)
+    args = TrainingArgs(; kws...)
+
+    # Set the random seed for reproducibility
+    args.seed > 0 && Random.seed!(args.seed)
+
+    # Determine whether to use GPU or CPU
+    if args.usecuda && CUDA.functional()
+        device = gpu
+        args.seed > 0 && CUDA.seed!(args.seed)
+        @info "Training on GPU"
+    else
+        device = cpu
+        @info "Training on CPU"
+    end
+
+    # LOAD DATA
+    X = g.features
+    y = g.targets
+    nin, nhidden, nout = size(X, 1), args.nhidden, num_labels
+
+    ## DEFINE MODEL
+    model = GNNChain(GCNConv(nin => nhidden, relu),
+                     GCNConv(nhidden => nhidden, relu),
+                     Dense(nhidden, nout)) |> device
+
+    # Define the optimizer
+    opt = Flux.setup(Adam(args.η), model)
+
+    # LOGGING FUNCTION
+    function report(epoch)
+        train_mse= eval_loss_accuracy(X, y, g.train_mask, model, g)
+        test_mse = eval_loss_accuracy(X, y, g.test_mask, model, g)
+        println("Epoch: $epoch   Train MSE: $train_mse  Test MSE: $test_mse")
+    end
+
+    ## TRAINING LOOP WITH BATCHING
+    report(0)  # Initial evaluation
+
+    for epoch in 1:args.epochs
+        # Create batches of node indices
+        batches = create_batches(g, args.batch_size)
+
+        for batch in batches
+            # Extract the subgraph, features, and targets for the batch
+            subgraph, X_batch, y_batch = extract_subgraph(g, batch)
+
+            # Move the data to the appropriate device (GPU/CPU)
+            X_batch, y_batch = X_batch |> device, y_batch |> device
+
+            # Perform the forward and backward pass for the batch
+            grad = Flux.gradient(model) do model
+                ŷ = model(subgraph, X_batch)
+                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
+            end
+
+            # Update the model parameters
+            Flux.update!(opt, model, grad)
+        end
+
+        # Report every `infotime` epochs
+        epoch % args.infotime == 0 && report(epoch)
+    end
+end
+
+train()
