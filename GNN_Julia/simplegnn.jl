@@ -392,7 +392,7 @@ k = 10  # Number of nearest neighbors
 knn_tree = KDTree(reduced_data)  # Build KNN search tree on node features
 
 # Step 3: Filter edges based on KNN
-filtered_edges = DataFrame(x1 = Int[], x2 = Int[])
+filtered_edges_knn = DataFrame(x1 = Int[], x2 = Int[])
 
 dic_knn = Dict()
 for sn in keys(node_map)
@@ -425,12 +425,12 @@ for row in eachrow(data)
     
     # If the target node is one of the k-nearest neighbors, keep the edge
     if target_node in dic_knn[source_node][1]
-        push!(filtered_edges, (source_node, target_node))
+        push!(filtered_edges_knn, (source_node, target_node))
     end
 end
 
 # `filtered_edges` now contains edges where x2 is among the k-nearest neighbors of x1
-println(filtered_edges)
+println(filtered_edges_knn)
 
 
 
@@ -542,14 +542,14 @@ function train(; kws...)
     end
 end
 
-train()
+#train()
 
 
 
 
 
 
-#########################################CHATGPT
+#########################################CHATGPT for batching
 # Evaluation function for regression tasks (MSE and MAE)
 
 # Evaluation function for regression tasks (MSE and MAE)
@@ -592,34 +592,35 @@ end
 # Function to extract a subgraph and features from a batch of node indices
 function extract_subgraph(g, node_batch)
     # Ensure we are using correct indexing for node features and targets
-    X_batch = g.features[:, node_batch]  # Features may still be a matrix
+    X_batch = Array{Float32}(g.features[:, node_batch])  # Features may still be a matrix
 
     # For target values, make sure we index using one dimension
-    y_batch = g.targets[node_batch]
+    y_batch = Array{Float32}(g.target[node_batch])
+
+    # Create a mapping from original node indices to reindexed node IDs
+    node_map = Dict(node => idx for (idx, node) in enumerate(node_batch))
 
     # Get the edges involving only nodes in the batch
     edge_batch = filter(e -> e.src in node_batch && e.dst in node_batch, edges(g))
 
     # Extract the source and target nodes from the edge_batch
-    if isempty(edge_batch)
-        src_nodes, dst_nodes = Int[], Int[]
-    else
-        src_nodes = map(e -> e.src, edge_batch)
-        dst_nodes = map(e -> e.dst, edge_batch)
-    end
+    src_nodes = map(e -> node_map[e.src], edge_batch)
+    dst_nodes = map(e -> node_map[e.dst], edge_batch)
 
     # Check that the lengths of src_nodes and dst_nodes are equal
     @assert length(src_nodes) == length(dst_nodes) "Mismatch in the number of source and target nodes."
-    println(size(src_nodes))
-    println(size(dst_nodes))
+    
+    println(src_nodes)
+    println(dst_nodes)
+    println(size(X_batch))
+    println(size(y_batch))
     # Create the subgraph using the extracted nodes and edges
     subgraph = GNNGraph(src_nodes, dst_nodes)
-
-    # Add the batch node features and target values to the GNNGraph
-    subgraph.ndata = Dict(
-        :features => X_batch,
-        :targets => y_batch
-    )
+    println(subgraph.num_nodes)
+    println(subgraph)
+    subgraph = GNNGraph(subgraph,ndata=(
+        features=X_batch,target=y_batch
+    ))
 
     return subgraph, X_batch, y_batch
 end
@@ -645,7 +646,7 @@ function train(; kws...)
 
     # LOAD DATA
     X = g.features
-    y = g.targets
+    y = g.target
     nin, nhidden, nout = size(X, 1), args.nhidden, num_labels
 
     ## DEFINE MODEL
