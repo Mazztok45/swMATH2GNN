@@ -286,7 +286,7 @@ Arrow.write("GNN_Julia/filtered_edges", filtered_edges)
 
 
 
-filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
+#filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 
 
 function random_mask()
@@ -406,14 +406,15 @@ end
 
 
 
-function keys_for_value(dict::Dict, val)
-    return [k for k in keys(dict) if dict[k] == val]
-end
+#function keys_for_value(dict::Dict, val)
+#    return [k for k in keys(dict) if dict[k] == val]
+#end
 
-dic_knn[5284666][1]
-keys_for_value(node_map,30446)
+#dic_knn[5284666][1]
+#keys_for_value(node_map,30446)
 
-filter(row->row.x2== 5947309,data)
+
+#filter(row->row.x2== 5947309,data)
 for row in eachrow(data)
     source_node = row[:x1]
     target_node = row[:x2]
@@ -430,7 +431,7 @@ for row in eachrow(data)
 end
 
 # `filtered_edges` now contains edges where x2 is among the k-nearest neighbors of x1
-println(filtered_edges_knn)
+#println(filtered_edges_knn)
 
 
 
@@ -593,8 +594,6 @@ end
 function extract_subgraph(g, node_batch)
     # Ensure we are using correct indexing for node features and targets
     X_batch = Array{Float32}(g.features[:, node_batch])  # Features may still be a matrix
-
-    # For target values, make sure we index using one dimension
     y_batch = Array{Float32}(g.target[node_batch])
 
     # Create a mapping from original node indices to reindexed node IDs
@@ -607,23 +606,35 @@ function extract_subgraph(g, node_batch)
     src_nodes = map(e -> node_map[e.src], edge_batch)
     dst_nodes = map(e -> node_map[e.dst], edge_batch)
 
-    # Check that the lengths of src_nodes and dst_nodes are equal
-    @assert length(src_nodes) == length(dst_nodes) "Mismatch in the number of source and target nodes."
+    # Combine src_nodes and dst_nodes to ensure unique node indices
+    all_nodes = unique(vcat(src_nodes, dst_nodes))
     
-    println(src_nodes)
-    println(dst_nodes)
-    println(size(X_batch))
-    println(size(y_batch))
+    # If there are fewer than 128 unique nodes, pad with remaining nodes from node_batch
+    if length(all_nodes) < 128
+        remaining_nodes = setdiff(1:128, all_nodes)
+        all_nodes = vcat(all_nodes, remaining_nodes[1:(128 - length(all_nodes))])
+    end
+
+    # Ensure src_nodes and dst_nodes have 128 unique values
+    src_nodes = all_nodes[1:128]
+    dst_nodes = all_nodes[1:128]  # You can adjust this logic if needed
+    
+    # Print out dimensions for debugging
+    println("Batch size (number of unique nodes): ", length(all_nodes))
+    println("X_batch dimensions: ", size(X_batch))
+    println("y_batch dimensions: ", size(y_batch))
+
     # Create the subgraph using the extracted nodes and edges
     subgraph = GNNGraph(src_nodes, dst_nodes)
-    println(subgraph.num_nodes)
-    println(subgraph)
-    subgraph = GNNGraph(subgraph,ndata=(
-        features=X_batch,target=y_batch
+    
+    # Create the subgraph with the correct features and target
+    subgraph = GNNGraph(subgraph, ndata=(
+        features=X_batch[:, 1:subgraph.num_nodes], target=y_batch[1:subgraph.num_nodes]
     ))
 
     return subgraph, X_batch, y_batch
 end
+
 
 
 
