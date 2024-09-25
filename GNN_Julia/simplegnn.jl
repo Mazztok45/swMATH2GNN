@@ -338,11 +338,11 @@ num_labels = 1 #30694   # number of labels (columns)
 # Create a OneHotMatrix using Flux.onehotbatch
 #random_one_hot_matrix = Flux.onehotbatch(random_labels, 1:num_labels)
 
-println("Size of generated OneHotMatrix: ", size(random_one_hot_matrix))
+#println("Size of generated OneHotMatrix: ", size(random_one_hot_matrix))
 
 ##
 
-num_nodes = Dict(:paper => 146346)
+num_nodes = Dict(:paper => num_papers)
 
 #data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
 
@@ -364,11 +364,11 @@ new_x2 = [node_map[node] for node in data.x2]
 
 
 ## Two columns DataFrame of related each other software
-#filt_rel_soft=DataFrame(CSV.File("filt_rel_soft.csv"))
-#g_s=SimpleGraph(35220)
-#for i in 1:size(filt_rel_soft.col1)[1]
-#    add_edge!(g_s, filt_rel_soft.col1[i], filt_rel_soft.col2[i]);
-#end
+filt_rel_soft=DataFrame(CSV.File("filt_rel_soft.csv"))
+g_s=SimpleGraph(35220)
+for i in 1:size(filt_rel_soft.col1)[1]
+    add_edge!(g_s, filt_rel_soft.col1[i], filt_rel_soft.col2[i]);
+end
 
 
 
@@ -388,8 +388,14 @@ reduced_data = predict(pca_model, filtered_msc)
 ############################
 
 # Step 2: Build KNN graph using PCA features
-k = 10  # Number of nearest neighbors
-knn_tree = KDTree(reduced_data)  # Build KNN search tree on node features
+if isfile("knn_tree.jld2")
+    @load "knn_tree.jld2" knn_tree
+else
+    k = 10  # Number of nearest neighbors
+    knn_tree = KDTree(reduced_data)  # Build KNN search tree on node features
+    @save "knn_tree.jld2" knn_tree
+end
+
 
 # Step 3: Filter edges based on KNN
 filtered_edges_knn = DataFrame(x1 = Int[], x2 = Int[])
@@ -463,6 +469,8 @@ ndata=(features = Float32.(reduced_data),  train_mask=train_mask, test_mask=test
 
 g = GNNGraph(g, ndata=ndata)
 
+
+#########################################OLD APPROACH
 
 function eval_loss_accuracy(X, y, mask, model, g)
     ŷ = model(g, X)
@@ -592,9 +600,9 @@ end
 # Updated function to extract a subgraph and features from a batch of node indices
 # Function to extract a subgraph and features from a batch of node indices
 function extract_subgraph(g, node_batch)
-    # Ensure we are using correct indexing for node features and targets
-    X_batch = Array{Float32}(g.features[:, node_batch])  # Features may still be a matrix
-    y_batch = Array{Float32}(g.target[node_batch])
+    num_nodes_in_batch = length(node_batch)  # Actual number of nodes in the batch
+    X_batch = Array{Float32}(g.features[:, node_batch])  # Features for the batch
+    y_batch = Array{Float32}(g.target[node_batch])       # Targets for the batch
 
     # Create a mapping from original node indices to reindexed node IDs
     node_map = Dict(node => idx for (idx, node) in enumerate(node_batch))
@@ -608,32 +616,56 @@ function extract_subgraph(g, node_batch)
 
     # Combine src_nodes and dst_nodes to ensure unique node indices
     all_nodes = unique(vcat(src_nodes, dst_nodes))
-    
-    # If there are fewer than 128 unique nodes, pad with remaining nodes from node_batch
-    if length(all_nodes) < 128
-        remaining_nodes = setdiff(1:128, all_nodes)
-        all_nodes = vcat(all_nodes, remaining_nodes[1:(128 - length(all_nodes))])
+
+    num_unique_nodes = length(all_nodes)
+
+    # Pad to exactly 128 nodes
+    required_size = 128
+
+    if num_unique_nodes < required_size
+        # Pad only to reach the required size
+        padding_size = required_size - num_unique_nodes
+        remaining_nodes = setdiff(1:g.num_nodes, all_nodes)
+        padding_nodes = remaining_nodes[1:padding_size]
+
+        all_nodes = vcat(all_nodes, padding_nodes)
+
+        # Add padding to X_batch and y_batch
+        padding_X = Array{Float32}(g.features[:, padding_nodes])
+        padding_y = Array{Float32}(g.target[padding_nodes])
+
+        X_batch = hcat(X_batch, padding_X)
+        y_batch = vcat(y_batch, padding_y)
+
+        # Ensure edges are connected for the padding nodes
+        padding_edges = [(src, dst) for src in padding_nodes, dst in padding_nodes]
+        for (src, dst) in padding_edges
+            push!(src_nodes, src)
+            push!(dst_nodes, dst)
+        end
     end
 
-    # Ensure src_nodes and dst_nodes have 128 unique values
-    src_nodes = all_nodes[1:128]
-    dst_nodes = all_nodes[1:128]  # You can adjust this logic if needed
-    
-    # Print out dimensions for debugging
-    println("Batch size (number of unique nodes): ", length(all_nodes))
-    println("X_batch dimensions: ", size(X_batch))
-    println("y_batch dimensions: ", size(y_batch))
+    # Ensure the batch size is exactly 128
+    X_batch = X_batch[:, 1:required_size]
+    y_batch = y_batch[1:required_size]
 
-    # Create the subgraph using the extracted nodes and edges
-    subgraph = GNNGraph(src_nodes, dst_nodes)
-    
-    # Create the subgraph with the correct features and target
+    # Debug: Print the adjusted sizes for X_batch and y_batch
+    #println("Final X_batch size: ", size(X_batch))
+    #println("Final y_batch size: ", size(y_batch))
+
+    # Create the subgraph using the updated list of nodes and edges
+    subgraph = GNNGraph((src_nodes, dst_nodes))
+
+    # Create the subgraph with the correct features and target size
     subgraph = GNNGraph(subgraph, ndata=(
-        features=X_batch[:, 1:subgraph.num_nodes], target=y_batch[1:subgraph.num_nodes]
+        features=X_batch,  # Assign only up to the required size
+        target=y_batch     # Assign only up to the required size
     ))
 
     return subgraph, X_batch, y_batch
 end
+
+
 
 
 
@@ -692,11 +724,11 @@ function train(; kws...)
             # Perform the forward and backward pass for the batch
             grad = Flux.gradient(model) do model
                 ŷ = model(subgraph, X_batch)
-                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
+                Flux.mse(ŷ, permutedims(y_batch); agg = mean)  # Compute the MSE loss for the batch
             end
 
             # Update the model parameters
-            Flux.update!(opt, model, grad)
+            Flux.update!(opt, model, grad[1])
         end
 
         # Report every `infotime` epochs
