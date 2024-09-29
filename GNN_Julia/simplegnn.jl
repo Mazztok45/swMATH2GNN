@@ -33,9 +33,11 @@ using Arrow
 using Serialization
 using NearestNeighbors
 using JLD2
+
 using Metis
-
-
+using Node2Vec
+using LinearAlgebra 
+using IterativeSolvers
 
 function msc_encoding()
     #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
@@ -99,7 +101,6 @@ num_labels = length(all_software_labels)
 
 #######
 # Initialize a BitArray with the dimensions (num_labels × number of papers)
-num_labels = length(all_software_labels)
 num_papers = length(software_arrays)
 
 # Create an uninitialized BitArray (BitMatrix)
@@ -116,7 +117,7 @@ end
 
 multi_hot_matrix=permutedims(multi_hot_matrix)
 
-multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
+#multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
 
 
 #sum(onehotbatch(a[7...],1:num_labels);dims=2)
@@ -127,27 +128,27 @@ multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
 
 
 # Number of unique labels (30,694) and papers (146,346)
-num_labels = 30694
-num_papers = length(multi_label_data)
+#num_labels = 30694
+#num_papers = length(multi_label_data)
 
 # Function to handle both single-label and multi-label cases without losing OneHotMatrix type
-function combine_labels(labels::Vector{Int64}, num_labels::Int64)
+#function combine_labels(labels::Vector{Int64}, num_labels::Int64)
     # Ensure all labels are within the valid range
-    if all(l -> l in 1:num_labels, labels)
-        if length(labels) == 1
+#    if all(l -> l in 1:num_labels, labels)
+#        if length(labels) == 1
             # Single label: simply return the OneHotVector for that label
-            return Flux.onehot(labels[1], 1:num_labels)
-        else
+#            return Flux.onehot(labels[1], 1:num_labels)
+#        else
             # Multi-label case: We generate multiple OneHotVectors and sum them
-            return sum(Flux.onehotbatch(labels, 1:num_labels), dims=2)
-        end
-    else
-        error("One or more labels are out of the valid range 1 to $num_labels")
-    end
-end
+#            return sum(Flux.onehotbatch(labels, 1:num_labels), dims=2)
+#        end
+#    else
+#        error("One or more labels are out of the valid range 1 to $num_labels")
+#    end
+#end
 
 # Apply the function to each paper's labels and collect the one-hot encoded vectors
-one_hot_vectors = [combine_labels(labels, num_labels) for labels in multi_label_data]
+#one_hot_vectors = [combine_labels(labels, num_labels) for labels in multi_label_data]
 
 # Use reduce with hcat for efficient concatenation, preserving OneHotMatrix type
 
@@ -180,38 +181,7 @@ num_papers = length(multi_label_data)
 # Preallocate a dense matrix to store one-hot encodings directly
 one_hot_data = zeros(UInt32, num_labels, num_papers)
 
-# Function to handle both single-label and multi-label cases
-function combine_labels(labels::Vector{Int64}, num_labels::Int64)
-    if all(l -> l in 1:num_labels, labels)
-        if length(labels) == 1
-            # Single label: return the OneHotVector for that label
-            return Flux.onehot(labels[1], 1:num_labels)
-        else
-            # Multi-label case: Generate a one-hot vector for each label and combine them
-            combined_dense = zeros(UInt32, num_labels)  # Start with a dense vector of zeros
-            for l in labels
-                combined_dense .+= collect(Flux.onehot(l, 1:num_labels))  # Add each one-hot vector
-            end
-            return combined_dense  # Return a dense vector in the end
-        end
-    else
-        error("One or more labels are out of the valid range 1 to $num_labels")
-    end
-end
-function msc_encoding()
-    #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
-    return deserialize("dense_one_hot.jls")
-end
 
-#msc_features_np=Matrix{Float32}(msc_encoding())
-
-
-pi_int = parse.(Int, split(read("msc_paper_id.txt",String), '\n'))
-unique_paper_ids = Set(unique(pi_int))
-
-function paper_edges()
-    return DataFrame(Arrow.Table("GNN_Julia/papers_edges_arrow/papers_edges_arrow"))
-end
 
 
 
@@ -223,24 +193,24 @@ grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x 
 
 
 # Loop through each paper, encode its labels, and fill the preallocated matrix
-for i in 1:num_papers
-    labels = multi_label_data[i]
-    one_hot_vector = combine_labels(labels, num_labels)
-    one_hot_data[:, i] = one_hot_vector  # Directly assign the one-hot vector to the matrix column
+#for i in 1:num_papers
+#    labels = multi_label_data[i]
+#    one_hot_vector = combine_labels(labels, num_labels)
+#    one_hot_data[:, i] = one_hot_vector  # Directly assign the one-hot vector to the matrix column
     
     # Run GC every 10,000 iterations instead of every loop
-    if i % 10000 == 0
-        GC.gc()
-    end
-end
+#    if i % 10000 == 0
+#        GC.gc()
+#    end
+#end
 
-println("Size of final matrix: ", size(one_hot_data))
+#println("Size of final matrix: ", size(one_hot_data))
 
 ############
 
 
 
-serialize("mutli_hot_matrix.jls",multi_hot_matrix)
+serialize("multi_hot_matrix.jls",multi_hot_matrix)
 #Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
 # Display one of the multi-hot encoded vectors for checking
 #println(multi_hot_encoded[1])
@@ -309,6 +279,57 @@ end
 train_mask, test_mask = random_mask()
 serialize("train_mask.jls",train_mask)
 serialize("test_mask.jls",test_mask)
+
+
+function random_mask()
+    at = 0.7  # Proportion of data for training
+    eval_ratio = 0.15  # Proportion of data for evaluation
+    n = size(grouped_by_paper_id.paper_id, 1)  # Total number of samples
+
+    vec = shuffle(grouped_by_paper_id.paper_id)  # Randomize the data
+
+    # Indices for training, evaluation, and test sets
+    train_idx_end = floor(Int, at * n)
+    eval_idx_end = floor(Int, (at + eval_ratio) * n)
+
+    train_idx = view(vec, 1:train_idx_end)
+    eval_idx = view(vec, (train_idx_end + 1):eval_idx_end)
+    test_idx = view(vec, (eval_idx_end + 1):n)
+
+    # Sizes of the splits
+    n_train = size(train_idx, 1)
+    n_eval = size(eval_idx, 1)
+    n_test = size(test_idx, 1)
+
+    # Create boolean masks for training, evaluation, and test sets
+    bool_train = vcat(ones(Int, n_train), zeros(Int, n - n_train))
+    bool_eval = vcat(zeros(Int, n_train), ones(Int, n_eval), zeros(Int, n - n_train - n_eval))
+    bool_test = vcat(zeros(Int, n_train + n_eval), ones(Int, n_test))
+
+    # Create dataframes to map the random indices back to their original order
+    dftr = DataFrame(col1 = vec, col2 = bool_train)
+    dfev = DataFrame(col1 = vec, col2 = bool_eval)
+    dfte = DataFrame(col1 = vec, col2 = bool_test)
+
+    # Sort the boolean vectors according to the original order of the paper IDs
+    train_mask = BitVector(sort!(dftr, [:col1])[:, :col2])
+    eval_mask = BitVector(sort!(dfev, [:col1])[:, :col2])
+    test_mask = BitVector(sort!(dfte, [:col1])[:, :col2])
+
+    return train_mask, eval_mask, test_mask
+end
+
+# Generate the masks
+train_mask, eval_mask, test_mask = random_mask()
+
+# Save the masks
+serialize("train_mask.jls", train_mask)
+serialize("eval_mask.jls", eval_mask)
+serialize("test_mask.jls", test_mask)
+
+
+
+
 #Arrow.write("GNN_Julia/random_mask", DataFrame(train_mask=train_mask,test_mask=test_mask))
 
 
@@ -318,61 +339,59 @@ serialize("test_mask.jls",test_mask)
 
 
 
-multi_hot_matrix= deserialize("mutli_hot_matrix.jls")
-
-
+multi_hot_matrix= deserialize("multi_hot_matrix.jls")
 filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 filtered_msc= deserialize("filtered_msc.jls")
 train_mask = deserialize("train_mask.jls")
 test_mask = deserialize("test_mask.jls")
 
-## testing random target
+
+############################ Target preparation
+
+# Assuming multi_hot_matrix is sparse
+sparse_matrix_float = SparseMatrixCSC{Float64, Int}(multi_hot_matrix)
+# Perform truncated SVD using svdl
+S, factorization = svdl(sparse_matrix_float, nsv=50)
+# 'P' contains the left singular vectors (U) from the SVD, 
+# representing the reduced-dimensional features for each paper, 
+# aligned with the rows of the original multi-label matrix.
+P = Float32.(permutedims(factorization.P[:, 1:100]))
+Q = Float32.(permutedims(factorization.Q[:, 1:100]))
+
+println(size(P))
+println(size(Q))
+
+############################ 
+
 
 # Parameters for the matrix
 num_papers = 146346  # number of papers (rows)
-num_labels = 1 #30694   # number of labels (columns)
 
-# Generate random label assignments for each paper
-#random_labels = rand(1:num_labels, num_papers)
 
-# Create a OneHotMatrix using Flux.onehotbatch
-#random_one_hot_matrix = Flux.onehotbatch(random_labels, 1:num_labels)
-
-#println("Size of generated OneHotMatrix: ", size(random_one_hot_matrix))
-
-##
 
 num_nodes = Dict(:paper => num_papers)
 
 #data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
 
-data = unique(DataFrame(hcat(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)), :auto))
+#data = unique(DataFrame(hcat(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)), :auto))
 
 
 # Combine all node IDs and find unique ones
-all_nodes = unique(vcat(data.x1, data.x2))
+#all_nodes = unique(vcat(data.x1, data.x2))
 
 # Create a dictionary to map old node IDs to new sequential IDs
-node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
+#node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
 
 # Remap the node IDs in your data
-new_x1 = [node_map[node] for node in data.x1]
-new_x2 = [node_map[node] for node in data.x2]
+#new_x1 = [node_map[node] for node in data.x1]
+#new_x2 = [node_map[node] for node in data.x2]
 
 # Create a new GNNGraph with remapped node IDs
 
 
 
-## Two columns DataFrame of related each other software
-filt_rel_soft=DataFrame(CSV.File("filt_rel_soft.csv"))
-g_s=SimpleGraph(35220)
-for i in 1:size(filt_rel_soft.col1)[1]
-    add_edge!(g_s, filt_rel_soft.col1[i], filt_rel_soft.col2[i]);
-end
 
-
-
-# Apply PCA
+############################ Apply PCA
 if isfile("pca_model.jld2")
     @load "pca_model.jld2" pca_model
 else
@@ -383,9 +402,10 @@ end
 
 # Transform the data to the new reduced space
 reduced_data = predict(pca_model, filtered_msc)
-
-
 ############################
+
+
+############################ KNN (not working)
 
 # Step 2: Build KNN graph using PCA features
 if isfile("knn_tree.jld2")
@@ -396,10 +416,6 @@ else
     @save "knn_tree.jld2" knn_tree
 end
 
-
-# Step 3: Filter edges based on KNN
-filtered_edges_knn = DataFrame(x1 = Int[], x2 = Int[])
-
 dic_knn = Dict()
 for sn in keys(node_map)
     source_node=node_map[sn]
@@ -407,37 +423,17 @@ for sn in keys(node_map)
     dic_knn[sn]=knn_indices
 end
 
+filtered_edges_knn = DataFrame(x1 = Int[], x2 = Int[])
 
-
-
-
-
-#function keys_for_value(dict::Dict, val)
-#    return [k for k in keys(dict) if dict[k] == val]
-#end
-
-#dic_knn[5284666][1]
-#keys_for_value(node_map,30446)
-
-
-#filter(row->row.x2== 5947309,data)
 for row in eachrow(data)
     source_node = row[:x1]
     target_node = row[:x2]
-    
-    #source_node=node_map[source_node]
-    #println(source_node)
-    # Find k-nearest neighbors of the source node based on PCA features
-    #knn_indices = knn(knn_tree, reduced_data[:,source_node], k)
-    
-    # If the target node is one of the k-nearest neighbors, keep the edge
     if target_node in dic_knn[source_node][1]
         push!(filtered_edges_knn, (source_node, target_node))
     end
 end
 
-# `filtered_edges` now contains edges where x2 is among the k-nearest neighbors of x1
-#println(filtered_edges_knn)
+############################
 
 
 
@@ -456,105 +452,32 @@ new_x1 = [node_map[node] for node in c[:,:paper_id]]
 new_x2 = [node_map[node] for node in c[:,:refs_id2]]
 
 
+############################ Target preparation
+#filt_rel_soft=DataFrame(CSV.File("filt_rel_soft.csv"))
+#g_s=SimpleGraph(35220)
+#for i in 1:size(filt_rel_soft.col1)[1]
+#    add_edge!(g_s, filt_rel_soft.col1[i], filt_rel_soft.col2[i]);
+#end
+
+
+
+
+
 
 
 ### GNN initialization
 
 g = GNNGraph(new_x1,new_x2)
-
-ndata=(features = Float32.(reduced_data),  train_mask=train_mask, test_mask=test_mask, target=rand(Float32, 1, num_papers))
-
-
-
+# Step 2: Define node data (ndata), including features, train_mask, eval_mask, test_mask, and target (P)
+ndata = (
+    features = Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
+    train_mask = train_mask,            # Training mask
+    eval_mask = eval_mask,              # Evaluation/Validation mask
+    test_mask = test_mask,              # Test mask
+    target = P                          # The target, reduced via SVD (P matrix)
+)
 
 g = GNNGraph(g, ndata=ndata)
-
-
-#########################################OLD APPROACH
-
-function eval_loss_accuracy(X, y, mask, model, g)
-    ŷ = model(g, X)
-    l = logitcrossentropy(ŷ[:, mask], y[:, mask])[ Info: Training on CPU
-    acc = mean(onecold(ŷ[:, mask]) .== onecold(y[:, mask]))
-    return (loss = round(l, digits = 4), acc = round(acc * 100, digits = 2))
-end
-
-
-function eval_loss_accuracy(X, y, mask, model, g)
-    ŷ = model(g, X)
-    l =  Flux.mse(ŷ[:, mask], y[:, mask]; agg = mean)
-    #acc = mean(onecold(ŷ[:, mask]) .== onecold(y[:, mask]))
-    return round(l, digits = 4)#, acc = round(acc * 100, digits = 2))
-end
-
-# arguments for the `train` function 
-Base.@kwdef mutable struct Args
-    η = 1.0f-3             # learning rate
-    epochs = 100          # number of epochs
-    seed = 17             # set seed > 0 for reproducibility
-    usecuda = true      # if true use cuda (if available)
-    nhidden = 128        # dimension of hidden features
-    infotime = 10      # report every `infotime` epochs
-end
-
-function train(; kws...)
-    args = Args(; kws...)
-
-    args.seed > 0 && Random.seed!(args.seed)
-
-    if args.usecuda && CUDA.functional()
-        device = gpu
-        args.seed > 0 && CUDA.seed!(args.seed)
-        @info "Training on GPU"
-    else
-        device = cpu
-        @info "Training on CPU"
-    end
-
-    # LOAD DATA
-    #dataset = Cora()
-    #classes = dataset.metadata["classes"]
-    #g = mldataset2gnngraph(dataset) |> device
-    X = g.features
-    y = g.target #rand(Float, num_labels, num_papers) #random_one_hot_matrix #onehotbatch(g.targets |> cpu, classes) |> device # remove when https://github.com/FluxML/Flux.jl/pull/1959 tagged
-    ytrain = y[:, g.train_mask]
-
-    nin, nhidden, nout = size(X, 1), args.nhidden, num_labels
-
-    ## DEFINE MODEL
-    model = GNNChain(GCNConv(nin => nhidden, relu),
-                     GCNConv(nhidden => nhidden, relu),
-                     Dense(nhidden, nout)) |> device
-
-    opt = Flux.setup(Adam(args.η), model)
-
-    display(g)
-
-    ## LOGGING FUNCTION
-    function report(epoch)
-        train = eval_loss_accuracy(X, y, g.train_mask, model, g)
-        test = eval_loss_accuracy(X, y, g.test_mask, model, g)
-        println("Epoch: $epoch   Train: $(train)   Test: $(test)")
-    end
-
-    ## TRAINING
-    report(0)
-    for epoch in 1:(args.epochs)
-        grad = Flux.gradient(model) do model
-            ŷ = model(g, X)
-            logitcrossentropy(ŷ[:, g.train_mask], ytrain)
-        end
-
-        Flux.update!(opt, model, grad[1])
-
-        epoch % args.infotime == 0 && report(epoch)
-    end
-end
-
-#train()
-
-
-
 
 
 
@@ -568,10 +491,12 @@ function eval_loss_accuracy(X, y, mask, model, g)
     #println(ŷ[mask])
     #println(Float32.(y[mask]))
     # Compute MSE loss between reshaped `y` and `ŷ`
-    l = Flux.mse(ŷ[mask],Float32.(y[mask]); agg = mean)
+    l = Flux.mse(ŷ[:,mask],Float32.(y[:,mask]); agg = mean)
 
     return round(l, digits = 4)
 end
+
+
 
 
 # Arguments structure for the train function
@@ -602,7 +527,9 @@ end
 function extract_subgraph(g, node_batch)
     num_nodes_in_batch = length(node_batch)  # Actual number of nodes in the batch
     X_batch = Array{Float32}(g.features[:, node_batch])  # Features for the batch
-    y_batch = Array{Float32}(g.target[node_batch])       # Targets for the batch
+
+    # Ensure y_batch has the correct number of features (100 in this case)
+    y_batch = Array{Float32}(g.target[:, node_batch])  # Adjusted to have 100 features
 
     # Create a mapping from original node indices to reindexed node IDs
     node_map = Dict(node => idx for (idx, node) in enumerate(node_batch))
@@ -632,10 +559,10 @@ function extract_subgraph(g, node_batch)
 
         # Add padding to X_batch and y_batch
         padding_X = Array{Float32}(g.features[:, padding_nodes])
-        padding_y = Array{Float32}(g.target[padding_nodes])
+        padding_y = Array{Float32}(g.target[:, padding_nodes])  # Ensure the padding has 100 features
 
         X_batch = hcat(X_batch, padding_X)
-        y_batch = vcat(y_batch, padding_y)
+        y_batch = hcat(y_batch, padding_y)  # Adjusted to match the target shape
 
         # Ensure edges are connected for the padding nodes
         padding_edges = [(src, dst) for src in padding_nodes, dst in padding_nodes]
@@ -647,11 +574,8 @@ function extract_subgraph(g, node_batch)
 
     # Ensure the batch size is exactly 128
     X_batch = X_batch[:, 1:required_size]
-    y_batch = y_batch[1:required_size]
+    y_batch = y_batch[:, 1:required_size]  # Adjust to the correct size
 
-    # Debug: Print the adjusted sizes for X_batch and y_batch
-    #println("Final X_batch size: ", size(X_batch))
-    #println("Final y_batch size: ", size(y_batch))
 
     # Create the subgraph using the updated list of nodes and edges
     subgraph = GNNGraph((src_nodes, dst_nodes))
@@ -664,6 +588,7 @@ function extract_subgraph(g, node_batch)
 
     return subgraph, X_batch, y_batch
 end
+
 
 
 
@@ -690,7 +615,8 @@ function train(; kws...)
     # LOAD DATA
     X = g.features
     y = g.target
-    nin, nhidden, nout = size(X, 1), args.nhidden, num_labels
+    num_vec=100
+    nin, nhidden, nout = size(X, 1), args.nhidden, num_vec
 
     ## DEFINE MODEL
     model = GNNChain(GCNConv(nin => nhidden, relu),
@@ -724,7 +650,7 @@ function train(; kws...)
             # Perform the forward and backward pass for the batch
             grad = Flux.gradient(model) do model
                 ŷ = model(subgraph, X_batch)
-                Flux.mse(ŷ, permutedims(y_batch); agg = mean)  # Compute the MSE loss for the batch
+                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
             end
 
             # Update the model parameters
@@ -734,6 +660,107 @@ function train(; kws...)
         # Report every `infotime` epochs
         epoch % args.infotime == 0 && report(epoch)
     end
+    model_state = Flux.state(model);
+    jldsave("gnn_model.jld2"; model_state)
+end
+
+train()
+
+
+
+
+function eval_loss_accuracy(X, y, mask, model, g)
+    ŷ = model(g, X)
+
+    # Compute MSE loss between ŷ and y using the mask
+    l = Flux.mse(ŷ[:, mask], Float32.(y[:, mask]); agg = mean)
+
+    # Multiply ŷ[:, mask] with Q to reconstruct the original label space
+    reconstructed_target = ŷ[:, mask]' * Q'  # Ensure dimensions match for multiplication
+
+    binary_predicted_labels = reconstructed_target .> 0.5  # Threshold at 0.5
+
+    # Make sure y_true has the correct dimensions (102442, 30694)
+    y_true = Float32.(y[:, mask])'  # Transpose the true labels to match binary_predicted_labels
+
+    # Calculate accuracy by comparing binary predictions with true labels
+    accuracy = sum(binary_predicted_labels .== y_true) / length(y_true)
+
+    return round(l, digits=4), round(accuracy, digits=4)
+end
+
+
+# Updated Training Function with Evaluation and Saving
+function train(; kws...)
+    args = TrainingArgs(; kws...)
+
+    # Set the random seed for reproducibility
+    args.seed > 0 && Random.seed!(args.seed)
+
+    # Determine whether to use GPU or CPU
+    if args.usecuda && CUDA.functional()
+        device = gpu
+        args.seed > 0 && CUDA.seed!(args.seed)
+        @info "Training on GPU"
+    else
+        device = cpu
+        @info "Training on CPU"
+    end
+
+    # LOAD DATA
+    X = g.features
+    y = g.target
+    num_vec = 100
+    nin, nhidden, nout = size(X, 1), args.nhidden, num_vec
+
+    ## DEFINE MODEL
+    model = GNNChain(GCNConv(nin => nhidden, relu),
+                     GCNConv(nhidden => nhidden, relu),
+                     Dense(nhidden, nout)) |> device
+
+    # Define the optimizer
+    opt = Flux.setup(Adam(args.η), model)
+
+    # LOGGING FUNCTION
+    function report(epoch)
+        train_mse, train_acc = eval_loss_accuracy(X, y, g.train_mask, model, g)
+        eval_mse, eval_acc = eval_loss_accuracy(X, y, g.eval_mask, model, g)
+        println("Epoch: $epoch   Train MSE: $train_mse  Train Accuracy: $train_acc  Eval MSE: $eval_mse  Eval Accuracy: $eval_acc")
+    end
+
+    ## TRAINING LOOP WITH BATCHING
+    report(0)  # Initial evaluation before training
+
+    for epoch in 1:args.epochs
+        batches = create_batches(g, args.batch_size)
+
+        for batch in batches
+            # Extract the subgraph, features, and targets for the batch
+            subgraph, X_batch, y_batch = extract_subgraph(g, batch)
+
+            # Move the data to the appropriate device (GPU/CPU)
+            X_batch, y_batch = X_batch |> device, y_batch |> device
+
+            # Perform forward and backward pass for the batch
+            grad = Flux.gradient(model) do model
+                ŷ = model(subgraph, X_batch)
+                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
+            end
+
+            # Update the model parameters
+            Flux.update!(opt, model, grad[1])
+        end
+
+        # Report every `infotime` epochs
+        epoch % args.infotime == 0 && report(epoch)
+    end
+
+    # Save the model after training
+    BSON.@save "model.bson" model opt
+
+    # Final evaluation on the test set
+    test_mse, test_acc = eval_loss_accuracy(X, y, g.test_mask, model, g)
+    println("Final Test MSE: $test_mse  Final Test Accuracy: $test_acc")
 end
 
 train()
