@@ -33,9 +33,9 @@ using Arrow
 using Serialization
 using NearestNeighbors
 using JLD2
-
 using Metis
-using Node2Vec
+using BSON
+#using Node2Vec
 using LinearAlgebra 
 using IterativeSolvers
 
@@ -186,9 +186,9 @@ one_hot_data = zeros(UInt32, num_labels, num_papers)
 
 
 
-filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(paper_edges()[!,[:paper_id,:software]]))
+#filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(paper_edges()[!,[:paper_id,:software]]))
 
-grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x -> collect(x) => :software_array)
+#grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x -> collect(x) => :software_array)
 
 
 
@@ -259,68 +259,37 @@ Arrow.write("GNN_Julia/filtered_edges", filtered_edges)
 #filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 
 
-function random_mask()
-    at=0.7
-    n = size(grouped_by_paper_id.paper_id,1)
-    vec=shuffle(grouped_by_paper_id.paper_id)
-    train_idx = view(vec, 1:floor(Int, at*n))
-    #test_idx = view(vec, (floor(Int, at*n)+1):n)
-    n_train=size(train_idx,1)
-    #n_test=size(test_idx,1)
-    bool_train = vcat(collect((1 for n=1:n_train)),collect((0 for n=1:(n-n_train))))
-    bool_test = vcat(collect((0 for n=1:n_train)),collect((1 for n=1:(n-n_train))))
-    dftr = DataFrame(col1=vec,col2=bool_train)
-    dfte = DataFrame(col1=vec,col2=bool_test)
-    train_mask = BitVector(sort!(dftr,[:col1])[:,:col2])
-    test_mask = BitVector(sort!(dfte,[:col1])[:,:col2])
-    return train_mask, test_mask
-end
+function random_mask(multi_hot_matrix, at = 0.7, eval_ratio = 0.15)
+    n = size(multi_hot_matrix, 1)  # Total number of samples
+    num_labels = size(multi_hot_matrix, 2)  # Number of labels (software)
 
-train_mask, test_mask = random_mask()
-serialize("train_mask.jls",train_mask)
-serialize("test_mask.jls",test_mask)
+    # Initialize boolean vectors for train, eval, and test masks
+    train_mask = BitVector(zeros(Bool, n))
+    eval_mask = BitVector(zeros(Bool, n))
+    test_mask = BitVector(zeros(Bool, n))
 
+    # Stratified sampling based on label presence in multi_hot_matrix
+    for i in 1:num_labels
+        # Find indices where the current label is present
+        label_indices = findall(multi_hot_matrix[:, i] .== 1)
+        shuffle!(label_indices)  # Shuffle indices to randomize
 
-function random_mask()
-    at = 0.7  # Proportion of data for training
-    eval_ratio = 0.15  # Proportion of data for evaluation
-    n = size(grouped_by_paper_id.paper_id, 1)  # Total number of samples
+        # Determine the number of samples for train, eval, and test
+        num_train = floor(Int, at * length(label_indices))
+        num_eval = floor(Int, eval_ratio * length(label_indices))
+        num_test = length(label_indices) - num_train - num_eval
 
-    vec = shuffle(grouped_by_paper_id.paper_id)  # Randomize the data
-
-    # Indices for training, evaluation, and test sets
-    train_idx_end = floor(Int, at * n)
-    eval_idx_end = floor(Int, (at + eval_ratio) * n)
-
-    train_idx = view(vec, 1:train_idx_end)
-    eval_idx = view(vec, (train_idx_end + 1):eval_idx_end)
-    test_idx = view(vec, (eval_idx_end + 1):n)
-
-    # Sizes of the splits
-    n_train = size(train_idx, 1)
-    n_eval = size(eval_idx, 1)
-    n_test = size(test_idx, 1)
-
-    # Create boolean masks for training, evaluation, and test sets
-    bool_train = vcat(ones(Int, n_train), zeros(Int, n - n_train))
-    bool_eval = vcat(zeros(Int, n_train), ones(Int, n_eval), zeros(Int, n - n_train - n_eval))
-    bool_test = vcat(zeros(Int, n_train + n_eval), ones(Int, n_test))
-
-    # Create dataframes to map the random indices back to their original order
-    dftr = DataFrame(col1 = vec, col2 = bool_train)
-    dfev = DataFrame(col1 = vec, col2 = bool_eval)
-    dfte = DataFrame(col1 = vec, col2 = bool_test)
-
-    # Sort the boolean vectors according to the original order of the paper IDs
-    train_mask = BitVector(sort!(dftr, [:col1])[:, :col2])
-    eval_mask = BitVector(sort!(dfev, [:col1])[:, :col2])
-    test_mask = BitVector(sort!(dfte, [:col1])[:, :col2])
+        # Assign masks based on stratified sampling
+        train_mask[label_indices[1:num_train]] .= true
+        eval_mask[label_indices[(num_train + 1):(num_train + num_eval)]] .= true
+        test_mask[label_indices[(num_train + num_eval + 1):end]] .= true
+    end
 
     return train_mask, eval_mask, test_mask
 end
 
-# Generate the masks
-train_mask, eval_mask, test_mask = random_mask()
+# Generate the masks with stratified sampling based on multi_hot_matrix
+train_mask, eval_mask, test_mask = random_mask(multi_hot_matrix)
 
 # Save the masks
 serialize("train_mask.jls", train_mask)
@@ -343,6 +312,7 @@ multi_hot_matrix= deserialize("multi_hot_matrix.jls")
 filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 filtered_msc= deserialize("filtered_msc.jls")
 train_mask = deserialize("train_mask.jls")
+eval_mask = deserialize("eval_mask.jls")
 test_mask = deserialize("test_mask.jls")
 
 
@@ -358,18 +328,18 @@ S, factorization = svdl(sparse_matrix_float, nsv=50)
 P = Float32.(permutedims(factorization.P[:, 1:100]))
 Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
-println(size(P))
-println(size(Q))
+
+
 
 ############################ 
 
 
 # Parameters for the matrix
-num_papers = 146346  # number of papers (rows)
+#num_papers = 146346  # number of papers (rows)
 
 
 
-num_nodes = Dict(:paper => num_papers)
+#num_nodes = Dict(:paper => num_papers)
 
 #data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
 
@@ -407,7 +377,7 @@ reduced_data = predict(pca_model, filtered_msc)
 
 ############################ KNN (not working)
 
-# Step 2: Build KNN graph using PCA features
+#= # Step 2: Build KNN graph using PCA features
 if isfile("knn_tree.jld2")
     @load "knn_tree.jld2" knn_tree
 else
@@ -431,7 +401,7 @@ for row in eachrow(data)
     if target_node in dic_knn[source_node][1]
         push!(filtered_edges_knn, (source_node, target_node))
     end
-end
+end =#
 
 ############################
 
@@ -479,24 +449,24 @@ ndata = (
 
 g = GNNGraph(g, ndata=ndata)
 
+# Cleaning the memory
+new_x1 = nothing
+new_x2 = nothing
+node_map = nothing
+all_nodes  = nothing
+c = nothing
+reduced_data = nothing
+multi_hot_matrix = nothing
+filtered_edges = nothing
+filtered_msc = nothing
+train_mask = nothing
+eval_mask = nothing
+test_mask = nothing
 
+GC.gc()
 
-#########################################CHATGPT for batching
+######################################### MODEL
 # Evaluation function for regression tasks (MSE and MAE)
-
-# Evaluation function for regression tasks (MSE and MAE)
-function eval_loss_accuracy(X, y, mask, model, g)
-    ŷ = model(g, X)
-
-    #println(ŷ[mask])
-    #println(Float32.(y[mask]))
-    # Compute MSE loss between reshaped `y` and `ŷ`
-    l = Flux.mse(ŷ[:,mask],Float32.(y[:,mask]); agg = mean)
-
-    return round(l, digits = 4)
-end
-
-
 
 
 # Arguments structure for the train function
@@ -586,7 +556,7 @@ function extract_subgraph(g, node_batch)
         target=y_batch     # Assign only up to the required size
     ))
 
-    return subgraph, X_batch, y_batch
+    return subgraph, X_batch, SparseMatrixCSC(y_batch)
 end
 
 
@@ -595,102 +565,59 @@ end
 
 
 
-# Main training function with batching
-function train(; kws...)
-    args = TrainingArgs(; kws...)
+function tune_thresholds(ŷ, y_true, Q, thresholds)
+    best_threshold = 0.5
+    best_f1 = 0.0
 
-    # Set the random seed for reproducibility
-    args.seed > 0 && Random.seed!(args.seed)
+    # Convert y_true to a binary matrix (Boolean) by applying a threshold
+    y_true_binary = y_true .> 0.5  # Ensure y_true is binary
 
-    # Determine whether to use GPU or CPU
-    if args.usecuda && CUDA.functional()
-        device = gpu
-        args.seed > 0 && CUDA.seed!(args.seed)
-        @info "Training on GPU"
-    else
-        device = cpu
-        @info "Training on CPU"
-    end
+    for threshold in thresholds
+        reconstructed_target = ŷ' * Q
+        binary_predicted_labels = reconstructed_target .> threshold  # Ensure predictions are binary
 
-    # LOAD DATA
-    X = g.features
-    y = g.target
-    num_vec=100
-    nin, nhidden, nout = size(X, 1), args.nhidden, num_vec
+        # Convert binary_predicted_labels and y_true_binary to Bool matrices before & operation
+        binary_predicted_labels = Bool.(binary_predicted_labels)
+        y_true_binary = Bool.(y_true_binary)
 
-    ## DEFINE MODEL
-    model = GNNChain(GCNConv(nin => nhidden, relu),
-                     GCNConv(nhidden => nhidden, relu),
-                     Dense(nhidden, nout)) |> device
+        precision = sum(binary_predicted_labels .& y_true_binary) / (sum(binary_predicted_labels) + 1e-6)
+        recall = sum(binary_predicted_labels .& y_true_binary) / (sum(y_true_binary) + 1e-6)
+        f1 = 2 * (precision * recall) / (precision + recall + 1e-6)
 
-    # Define the optimizer
-    opt = Flux.setup(Adam(args.η), model)
-
-    # LOGGING FUNCTION
-    function report(epoch)
-        train_mse= eval_loss_accuracy(X, y, g.train_mask, model, g)
-        test_mse = eval_loss_accuracy(X, y, g.test_mask, model, g)
-        println("Epoch: $epoch   Train MSE: $train_mse  Test MSE: $test_mse")
-    end
-
-    ## TRAINING LOOP WITH BATCHING
-    report(0)  # Initial evaluation
-
-    for epoch in 1:args.epochs
-        # Create batches of node indices
-        batches = create_batches(g, args.batch_size)
-
-        for batch in batches
-            # Extract the subgraph, features, and targets for the batch
-            subgraph, X_batch, y_batch = extract_subgraph(g, batch)
-
-            # Move the data to the appropriate device (GPU/CPU)
-            X_batch, y_batch = X_batch |> device, y_batch |> device
-
-            # Perform the forward and backward pass for the batch
-            grad = Flux.gradient(model) do model
-                ŷ = model(subgraph, X_batch)
-                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
-            end
-
-            # Update the model parameters
-            Flux.update!(opt, model, grad[1])
+        if f1 > best_f1
+            best_f1 = f1
+            best_threshold = threshold
         end
-
-        # Report every `infotime` epochs
-        epoch % args.infotime == 0 && report(epoch)
     end
-    model_state = Flux.state(model);
-    jldsave("gnn_model.jld2"; model_state)
+
+    return best_threshold, best_f1
 end
 
-train()
-
-
-
-
-function eval_loss_accuracy(X, y, mask, model, g)
+function eval_loss_accuracy(X, y, mask, model, g, Q)
     ŷ = model(g, X)
 
-    # Compute MSE loss between ŷ and y using the mask
-    l = Flux.mse(ŷ[:, mask], Float32.(y[:, mask]); agg = mean)
+    # Reconstruct the target in binary form
+    reconstructed_target = ŷ[:, mask]' * Q
+    best_threshold = 0.08
+    binary_predicted_labels = reconstructed_target .> best_threshold
+    y_true = sparse_matrix_float[mask, :]
 
-    # Multiply ŷ[:, mask] with Q to reconstruct the original label space
-    reconstructed_target = ŷ[:, mask]' * Q'  # Ensure dimensions match for multiplication
+    # Convert to Boolean for broadcasting and comparison
+    binary_predicted_labels = BitMatrix(binary_predicted_labels)
+    y_true = BitMatrix(y_true)
 
-    binary_predicted_labels = reconstructed_target .> 0.5  # Threshold at 0.5
+    # Calculate precision, recall, and F1 score
+    precision = sum(binary_predicted_labels .& y_true) / (sum(binary_predicted_labels) + 1e-6)
+    recall = sum(binary_predicted_labels .& y_true) / (sum(y_true) + 1e-6)
+    f1_score = 2 * (precision * recall) / (precision + recall + 1e-6)
 
-    # Make sure y_true has the correct dimensions (102442, 30694)
-    y_true = Float32.(y[:, mask])'  # Transpose the true labels to match binary_predicted_labels
+    # Compute Binary Cross Entropy loss
+    l = Flux.Losses.binarycrossentropy(binary_predicted_labels, y_true)
 
-    # Calculate accuracy by comparing binary predictions with true labels
-    accuracy = sum(binary_predicted_labels .== y_true) / length(y_true)
-
-    return round(l, digits=4), round(accuracy, digits=4)
+    return round(l, digits=4), round(f1_score, digits=4)
 end
 
-
-# Updated Training Function with Evaluation and Saving
+# Main training function with updated eval_loss_accuracy
 function train(; kws...)
     args = TrainingArgs(; kws...)
 
@@ -714,18 +641,22 @@ function train(; kws...)
     nin, nhidden, nout = size(X, 1), args.nhidden, num_vec
 
     ## DEFINE MODEL
-    model = GNNChain(GCNConv(nin => nhidden, relu),
-                     GCNConv(nhidden => nhidden, relu),
-                     Dense(nhidden, nout)) |> device
+    model = GNNChain(
+        Dropout(0.5),
+        GCNConv(nin => nhidden, relu),
+        Dropout(0.5),
+        GCNConv(nhidden => nhidden, relu),
+        Dropout(0.5),
+        Dense(nhidden, nout)) |> device
 
     # Define the optimizer
     opt = Flux.setup(Adam(args.η), model)
 
     # LOGGING FUNCTION
     function report(epoch)
-        train_mse, train_acc = eval_loss_accuracy(X, y, g.train_mask, model, g)
-        eval_mse, eval_acc = eval_loss_accuracy(X, y, g.eval_mask, model, g)
-        println("Epoch: $epoch   Train MSE: $train_mse  Train Accuracy: $train_acc  Eval MSE: $eval_mse  Eval Accuracy: $eval_acc")
+        train_loss, train_f1 = eval_loss_accuracy(X, y, g.train_mask, model, g, Q)
+        eval_loss, eval_f1 = eval_loss_accuracy(X, y, g.eval_mask, model, g, Q)
+        println("Epoch: $epoch   Train Loss: $train_loss  Train F1: $train_f1  Eval Loss: $eval_loss  Eval F1: $eval_f1")
     end
 
     ## TRAINING LOOP WITH BATCHING
@@ -743,8 +674,9 @@ function train(; kws...)
 
             # Perform forward and backward pass for the batch
             grad = Flux.gradient(model) do model
-                ŷ = model(subgraph, X_batch)
-                Flux.mse(ŷ, y_batch; agg = mean)  # Compute the MSE loss for the batch
+                ŷ = SparseMatrixCSC(model(subgraph, X_batch))
+                # Use binary cross-entropy instead of MSE
+                Flux.Losses.binarycrossentropy(ŷ, y_batch)
             end
 
             # Update the model parameters
@@ -759,8 +691,12 @@ function train(; kws...)
     BSON.@save "model.bson" model opt
 
     # Final evaluation on the test set
-    test_mse, test_acc = eval_loss_accuracy(X, y, g.test_mask, model, g)
-    println("Final Test MSE: $test_mse  Final Test Accuracy: $test_acc")
+    test_loss, test_f1 = eval_loss_accuracy(X, y, g.test_mask, model, g, Q)
+    println("Final Test Loss: $test_loss  Final Test F1: $test_f1")
 end
+
+
+
+
 
 train()

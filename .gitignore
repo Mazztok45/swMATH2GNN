@@ -62,3 +62,6 @@ GNN_Julia/papers_edges_arrow
 msc_paper_id.txt
 
 GNN_Julia/multi_hot_encoded.csv
+*.jls
+GNN_Julia/filtered_edges
+pca_model.jld2
