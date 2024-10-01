@@ -603,8 +603,8 @@ function eval_loss_accuracy(X, y, mask, model, g, Q)
     y_true = sparse_matrix_float[mask, :]
 
     # Convert to Boolean for broadcasting and comparison
-    binary_predicted_labels = BitMatrix(binary_predicted_labels)
-    y_true = BitMatrix(y_true)
+    binary_predicted_labels = Bool.(binary_predicted_labels)
+    y_true = Bool.(y_true)
 
     # Calculate precision, recall, and F1 score
     precision = sum(binary_predicted_labels .& y_true) / (sum(binary_predicted_labels) + 1e-6)
@@ -694,9 +694,6 @@ function train(; kws...)
     test_loss, test_f1 = eval_loss_accuracy(X, y, g.test_mask, model, g, Q)
     println("Final Test Loss: $test_loss  Final Test F1: $test_f1")
 end
-
-
-
 
 
 train()
