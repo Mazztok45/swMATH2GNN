@@ -25,7 +25,7 @@ using Serialization
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 articles_list_dict = extract_articles_metadata()
-
+software_df = generate_software_dataframe()
 node_features = [dic[:msc] for dic in articles_list_dict]
 art_soft = [dic[:software] for dic in articles_list_dict]
 refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
@@ -119,9 +119,10 @@ maj_cat_enc=map(x -> enc.invlabel[x],map(x -> x[1:2],cat_nodes))
 
 CSV.write("msc_edges.csv", DataFrame(col1=maj_cat_enc,col2=cat_nodes_enc))
 
-
+####new strat
+enc=labelenc(maj_cat)
 ### Get the encoded MSC node features
-enc_node_features=[map(x -> enc.invlabel[x], y) for y in new_nodes_features]
+enc_node_features=[map(x -> enc.invlabel[x[1:2]], y) for y in new_nodes_features]
 
 df = DataFrame(msc=enc_node_features)
 ux = unique(reduce(vcat, df.msc))

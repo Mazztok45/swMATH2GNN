@@ -65,3 +65,8 @@ GNN_Julia/multi_hot_encoded.csv
 *.jls
 GNN_Julia/filtered_edges
 pca_model.jld2
+filtered_msc.csv
+knn_tree.jld2
+model.bson
+multi_hot_matrix.csv
+plot_1.svg

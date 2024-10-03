@@ -31,12 +31,12 @@ using MLLabelUtils
 using StatsBase
 using Arrow
 using Serialization
-using NearestNeighbors
+#using NearestNeighbors
 using JLD2
 using Metis
 using BSON
 #using Node2Vec
-using LinearAlgebra 
+using LinearAlgebra
 using IterativeSolvers
 
 function msc_encoding()
@@ -47,7 +47,7 @@ end
 #msc_features_np=Matrix{Float32}(msc_encoding())
 
 
-pi_int = parse.(Int, split(read("msc_paper_id.txt",String), '\n'))
+pi_int = parse.(Int, split(read("msc_paper_id.txt", String), '\n'))
 unique_paper_ids = Set(unique(pi_int))
 
 function paper_edges()
@@ -57,7 +57,7 @@ end
 
 
 
-filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(paper_edges()[!,[:paper_id,:software]]))
+filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(paper_edges()[!, [:paper_id, :software]]))
 
 grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x -> collect(x) => :software_array)
 
@@ -66,10 +66,10 @@ grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x 
 software_arrays = [pair.first for pair in grouped_by_paper_id.software_function]
 
 # Cleaning the memory
-pi_int=nothing
-unique_paper_ids =nothing
-filtered_data =nothing
-grouped_by_paper_id=nothing
+pi_int = nothing
+unique_paper_ids = nothing
+filtered_data = nothing
+grouped_by_paper_id = nothing
 
 GC.gc()
 
@@ -86,16 +86,16 @@ num_labels = length(all_software_labels)
 
 # Loop through each array of software labels in software_arrays
 #for software_list in software_arrays
-    # Create a zero vector of length equal to the number of unique labels
+# Create a zero vector of length equal to the number of unique labels
 #    one_hot_vector = zeros(Int, num_labels)
-    
-    # For each software in the list, set the corresponding index in the one-hot vector to 1
+
+# For each software in the list, set the corresponding index in the one-hot vector to 1
 #    for software in software_list
 #        idx = label_to_index[software]
 #        one_hot_vector[idx] = 1
 #    end
-    
-    # Append the multi-hot encoded vector to the list
+
+# Append the multi-hot encoded vector to the list
 #    push!(multi_hot_encoded, one_hot_vector)
 #end
 
@@ -115,15 +115,68 @@ for (i, software_list) in enumerate(software_arrays)
     end
 end
 
-multi_hot_matrix=permutedims(multi_hot_matrix)
+multi_hot_matrix = permutedims(multi_hot_matrix)
 
 #multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
 
+u_soft=unique(software_df[!,[:id,:classification]])
+vs=replace!(u_soft[!,:classification],"" => "No_MSC")
+u_soft[!,:classification]=vs
 
-#sum(onehotbatch(a[7...],1:num_labels);dims=2)
+for l in software_arrays
+    for i in l
+        int_id=parse(Int64, i)
+        if !(int_id in u_soft.id)
+            # Make a GET request to an API
+            req="https://api.zbmath.org/v1/software/"*i
+            println(req)
+            response = HTTP.get(req)
+            data = JSON.parse(String(response.body))
+            #println(data)
+            #println(keys(data))
+            push!(u_soft,(int_id,join(data["result"]["classification"],";")))
+        end    
+    end
+end
+
+# Parse the response body
+
+vec_msc_soft = Vector{Vector}()
+for l in software_arrays
+    arr = Vector{Vector}()
+    for i in l
+        r=filter(row -> row.id ==parse(Int64,i),u_soft)[!,:classification]
+        #println(r)
+        #println(i)
+        arr_msc_s = split(r[1],';')
+        push!(arr, arr_msc_s)
+    end  
+    push!(vec_msc_soft, unique(vcat(arr...)) )
+end
 
 
+# Initialize a BitArray with the dimensions (num_labels × number of papers)
+num_papers = length(software_arrays)
 
+
+all_software_msc = unique(vcat(vec_msc_soft...))
+# Map each software label to a unique index
+label_to_msc = Dict(label => i for (i, label) in enumerate(all_software_msc))
+
+num_msc=length(all_software_msc)
+# Create an uninitialized BitArray (BitMatrix)
+msc_soft_hot_matrix = BitArray(undef, num_msc, num_papers)
+# Loop through each array of software labels in software_arrays
+for (i, msc_list) in enumerate(vec_msc_soft)
+    # For each software in the list, set the corresponding index in the BitArray to true (1)
+    for msc in msc_list
+        idx = label_to_msc[msc]
+        msc_soft_hot_matrix[idx, i] = true  # Set the bit to true
+    end
+end
+
+msc_soft_hot_matrix= permutedims(msc_soft_hot_matrix)
+serialize("msc_soft_hot_matrix.jls",msc_soft_hot_matrix)
 ##############
 
 
@@ -133,13 +186,13 @@ multi_hot_matrix=permutedims(multi_hot_matrix)
 
 # Function to handle both single-label and multi-label cases without losing OneHotMatrix type
 #function combine_labels(labels::Vector{Int64}, num_labels::Int64)
-    # Ensure all labels are within the valid range
+# Ensure all labels are within the valid range
 #    if all(l -> l in 1:num_labels, labels)
 #        if length(labels) == 1
-            # Single label: simply return the OneHotVector for that label
+# Single label: simply return the OneHotVector for that label
 #            return Flux.onehot(labels[1], 1:num_labels)
 #        else
-            # Multi-label case: We generate multiple OneHotVectors and sum them
+# Multi-label case: We generate multiple OneHotVectors and sum them
 #            return sum(Flux.onehotbatch(labels, 1:num_labels), dims=2)
 #        end
 #    else
@@ -153,10 +206,10 @@ multi_hot_matrix=permutedims(multi_hot_matrix)
 # Use reduce with hcat for efficient concatenation, preserving OneHotMatrix type
 
 
-filtered_data=nothing
-grouped_by_paper_id=nothing
-multi_label_data=nothing
-multi_hot_matrix=nothing
+filtered_data = nothing
+grouped_by_paper_id = nothing
+multi_label_data = nothing
+multi_hot_matrix = nothing
 
 GC.gc()
 
@@ -197,8 +250,8 @@ one_hot_data = zeros(UInt32, num_labels, num_papers)
 #    labels = multi_label_data[i]
 #    one_hot_vector = combine_labels(labels, num_labels)
 #    one_hot_data[:, i] = one_hot_vector  # Directly assign the one-hot vector to the matrix column
-    
-    # Run GC every 10,000 iterations instead of every loop
+
+# Run GC every 10,000 iterations instead of every loop
 #    if i % 10000 == 0
 #        GC.gc()
 #    end
@@ -210,24 +263,24 @@ one_hot_data = zeros(UInt32, num_labels, num_papers)
 
 
 
-serialize("multi_hot_matrix.jls",multi_hot_matrix)
+serialize("multi_hot_matrix.jls", multi_hot_matrix)
 #Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
 # Display one of the multi-hot encoded vectors for checking
 #println(multi_hot_encoded[1])
 
 
-selected_paper_id=Set(unique(grouped_by_paper_id.paper_id))
+selected_paper_id = Set(unique(grouped_by_paper_id.paper_id))
 
-sd = setdiff(unique_paper_ids,selected_paper_id)
+sd = setdiff(unique_paper_ids, selected_paper_id)
 
 vec_u = collect(unique_paper_ids)
 
 
-l_ind = [i for (i,j) in enumerate(vec_u) if !(j in sd)]
+l_ind = [i for (i, j) in enumerate(vec_u) if !(j in sd)]
 
-filtered_msc =  permutedims(msc_encoding()[l_ind,:])
- 
-serialize("filtered_msc.jls",filtered_msc)
+filtered_msc = permutedims(msc_encoding()[l_ind, :])
+
+serialize("filtered_msc.jls", filtered_msc)
 
 #Arrow.write("GNN_Julia/filtered_msc",filtered_msc)
 
@@ -236,9 +289,9 @@ serialize("filtered_msc.jls",filtered_msc)
 
 
 ### ADAPT THE EDGES
-refs_df=paper_edges()
+refs_df = paper_edges()
 
-filtered_edges = filter(row -> (row.paper_id in unique_paper_ids  && !(row.paper_id  in sd)), unique(paper_edges()[!,[:paper_id,:ref_id]]))
+filtered_edges = filter(row -> (row.paper_id in unique_paper_ids && !(row.paper_id in sd)), unique(paper_edges()[!, [:paper_id, :ref_id]]))
 
 # Assuming l is a list of ref_ids
 l = unique(filtered_edges.paper_id)
@@ -259,7 +312,7 @@ Arrow.write("GNN_Julia/filtered_edges", filtered_edges)
 #filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
 
 
-function random_mask(multi_hot_matrix, at = 0.7, eval_ratio = 0.15)
+function random_mask(multi_hot_matrix, at=0.7, eval_ratio=0.15)
     n = size(multi_hot_matrix, 1)  # Total number of samples
     num_labels = size(multi_hot_matrix, 2)  # Number of labels (software)
 
@@ -281,8 +334,8 @@ function random_mask(multi_hot_matrix, at = 0.7, eval_ratio = 0.15)
 
         # Assign masks based on stratified sampling
         train_mask[label_indices[1:num_train]] .= true
-        eval_mask[label_indices[(num_train + 1):(num_train + num_eval)]] .= true
-        test_mask[label_indices[(num_train + num_eval + 1):end]] .= true
+        eval_mask[label_indices[(num_train+1):(num_train+num_eval)]] .= true
+        test_mask[label_indices[(num_train+num_eval+1):end]] .= true
     end
 
     return train_mask, eval_mask, test_mask
@@ -307,10 +360,10 @@ serialize("test_mask.jls", test_mask)
 #### MODEL PART
 
 
-
-multi_hot_matrix= deserialize("multi_hot_matrix.jls")
-filtered_edges= DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
-filtered_msc= deserialize("filtered_msc.jls")
+msc_soft_hot_matrix=deserialize("msc_soft_hot_matrix.jls")
+#multi_hot_matrix = deserialize("multi_hot_matrix.jls")
+filtered_edges = DataFrame(Arrow.Table(Arrow.read("GNN_Julia/filtered_edges")))
+filtered_msc = deserialize("filtered_msc.jls")
 train_mask = deserialize("train_mask.jls")
 eval_mask = deserialize("eval_mask.jls")
 test_mask = deserialize("test_mask.jls")
@@ -319,7 +372,7 @@ test_mask = deserialize("test_mask.jls")
 ############################ Target preparation
 
 # Assuming multi_hot_matrix is sparse
-sparse_matrix_float = SparseMatrixCSC{Float64, Int}(multi_hot_matrix)
+sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
 # Perform truncated SVD using svdl
 S, factorization = svdl(sparse_matrix_float, nsv=50)
 # 'P' contains the left singular vectors (U) from the SVD, 
@@ -328,6 +381,39 @@ S, factorization = svdl(sparse_matrix_float, nsv=50)
 P = Float32.(permutedims(factorization.P[:, 1:100]))
 Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
+# Sum the multi_hot_matrix along the columns to get label distribution
+label_counts = sum(multi_hot_matrix, dims=1)
+
+# Calculate class weights (inverse of the label counts)
+class_weights = 1.0 ./ label_counts
+
+############################ Target Preparation
+
+# Assuming multi_hot_matrix is sparse
+sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
+
+# Sum the multi_hot_matrix along the columns to get label distribution
+label_counts = sum(multi_hot_matrix, dims=1)
+
+# Calculate class weights (inverse of the label counts)
+class_weights = SparseMatrixCSC{Float64, Int}(1.0 ./ label_counts)
+
+# Apply class weights in a loop to avoid memory overflow
+weighted_multi_hot_matrix = copy(sparse_matrix_float)  # Initialize a copy
+
+# Multiply each column of the multi-hot matrix by the corresponding class weight
+for col in 1:size(sparse_matrix_float, 2)
+    weighted_multi_hot_matrix[:, col] .= sparse_matrix_float[:, col] .* class_weights[col]
+end
+
+# Perform truncated SVD using svdl on the weighted matrix
+S, factorization = svdl(weighted_multi_hot_matrix, nsv=50)
+
+# 'P' contains the left singular vectors (U) from the SVD, 
+# representing the reduced-dimensional features for each paper, 
+# aligned with the rows of the original multi-label matrix.
+P = Float32.(permutedims(factorization.P[:, 1:100]))
+Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
 
 
@@ -408,18 +494,18 @@ end =#
 
 
 ############################
-c=combine(first,groupby(filtered_edges[:,[:paper_id,:refs_id2]], :paper_id))
+c = combine(first, groupby(filtered_edges[:, [:paper_id, :refs_id2]], :paper_id))
 
 
 # Combine all node IDs and find unique ones
-all_nodes = unique(vcat(c[:,:refs_id2], c[:,:paper_id]))
+all_nodes = unique(vcat(c[:, :refs_id2], c[:, :paper_id]))
 
 # Create a dictionary to map old node IDs to new sequential IDs
 node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
 
 # Remap the node IDs in your data
-new_x1 = [node_map[node] for node in c[:,:paper_id]]
-new_x2 = [node_map[node] for node in c[:,:refs_id2]]
+new_x1 = [node_map[node] for node in c[:, :paper_id]]
+new_x2 = [node_map[node] for node in c[:, :refs_id2]]
 
 
 ############################ Target preparation
@@ -437,14 +523,16 @@ new_x2 = [node_map[node] for node in c[:,:refs_id2]]
 
 ### GNN initialization
 
-g = GNNGraph(new_x1,new_x2)
+g = GNNGraph(new_x1, new_x2)
 # Step 2: Define node data (ndata), including features, train_mask, eval_mask, test_mask, and target (P)
+
+
 ndata = (
-    features = Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
-    train_mask = train_mask,            # Training mask
-    eval_mask = eval_mask,              # Evaluation/Validation mask
-    test_mask = test_mask,              # Test mask
-    target = P                          # The target, reduced via SVD (P matrix)
+    features=SparseMatrixCSC{Float32}(Float32.(filtered_msc)), #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
+    train_mask=train_mask,            # Training mask
+    eval_mask=eval_mask,              # Evaluation/Validation mask
+    test_mask=test_mask,              # Test mask
+    target=SparseMatrixCSC{Float32}(Float32.(permutedims(msc_soft_hot_matrix)))                         # The target, reduced via SVD (P matrix)
 )
 
 g = GNNGraph(g, ndata=ndata)
@@ -453,10 +541,10 @@ g = GNNGraph(g, ndata=ndata)
 new_x1 = nothing
 new_x2 = nothing
 node_map = nothing
-all_nodes  = nothing
+all_nodes = nothing
 c = nothing
 reduced_data = nothing
-multi_hot_matrix = nothing
+msc_soft_hot_matrix = nothing
 filtered_edges = nothing
 filtered_msc = nothing
 train_mask = nothing
@@ -477,7 +565,7 @@ Base.@kwdef mutable struct TrainingArgs
     seed = 17              # set seed > 0 for reproducibility
     usecuda = true         # if true use cuda (if available)
     nhidden = 128          # dimension of hidden features
-    batch_size = 128       # batch size for mini-batch training
+    batch_size = 512 #128       # batch size for mini-batch training
     infotime = 10          # report every `infotime` epochs
 end
 
@@ -565,57 +653,39 @@ end
 
 
 
-function tune_thresholds(ŷ, y_true, Q, thresholds)
-    best_threshold = 0.5
-    best_f1 = 0.0
 
-    # Convert y_true to a binary matrix (Boolean) by applying a threshold
-    y_true_binary = y_true .> 0.5  # Ensure y_true is binary
-
-    for threshold in thresholds
-        reconstructed_target = ŷ' * Q
-        binary_predicted_labels = reconstructed_target .> threshold  # Ensure predictions are binary
-
-        # Convert binary_predicted_labels and y_true_binary to Bool matrices before & operation
-        binary_predicted_labels = Bool.(binary_predicted_labels)
-        y_true_binary = Bool.(y_true_binary)
-
-        precision = sum(binary_predicted_labels .& y_true_binary) / (sum(binary_predicted_labels) + 1e-6)
-        recall = sum(binary_predicted_labels .& y_true_binary) / (sum(y_true_binary) + 1e-6)
-        f1 = 2 * (precision * recall) / (precision + recall + 1e-6)
-
-        if f1 > best_f1
-            best_f1 = f1
-            best_threshold = threshold
-        end
-    end
-
-    return best_threshold, best_f1
-end
-
-function eval_loss_accuracy(X, y, mask, model, g, Q)
+function eval_loss_accuracy(X, y, mask, model, g)
     ŷ = model(g, X)
 
     # Reconstruct the target in binary form
-    reconstructed_target = ŷ[:, mask]' * Q
-    best_threshold = 0.08
-    binary_predicted_labels = reconstructed_target .> best_threshold
-    y_true = sparse_matrix_float[mask, :]
+    #reconstructed_target = ŷ[:, mask]' * Q
+    best_threshold = 0.5
+    binary_predicted_labels = ŷ[:, mask] .> best_threshold
+    y_true = y[:, mask]
 
-    # Convert to Boolean for broadcasting and comparison
-    binary_predicted_labels = Bool.(binary_predicted_labels)
-    y_true = Bool.(y_true)
+    # Apply the threshold to y_true for comparison
+    y_true_binary = y_true .> best_threshold  # Apply threshold to y_true
+    println(size(y_true_binary))
+    println(size(binary_predicted_labels))
+    # Precision: count true positives (correctly predicted labels) over predicted positives
+    precision = sum((binary_predicted_labels .& y_true_binary)) / (sum(binary_predicted_labels) + 1e-6)
 
-    # Calculate precision, recall, and F1 score
-    precision = sum(binary_predicted_labels .& y_true) / (sum(binary_predicted_labels) + 1e-6)
-    recall = sum(binary_predicted_labels .& y_true) / (sum(y_true) + 1e-6)
+    # Recall: count true positives over actual positives
+    recall = sum((binary_predicted_labels .& y_true_binary)) / (sum(y_true_binary) + 1e-6)
+
+    # F1-score: harmonic mean of precision and recall
     f1_score = 2 * (precision * recall) / (precision + recall + 1e-6)
 
+    println(f1_score)
     # Compute Binary Cross Entropy loss
     l = Flux.Losses.binarycrossentropy(binary_predicted_labels, y_true)
 
     return round(l, digits=4), round(f1_score, digits=4)
 end
+
+
+
+
 
 # Main training function with updated eval_loss_accuracy
 function train(; kws...)
@@ -637,25 +707,27 @@ function train(; kws...)
     # LOAD DATA
     X = g.features
     y = g.target
-    num_vec = 100
+    num_vec = size(g.target)[1]
     nin, nhidden, nout = size(X, 1), args.nhidden, num_vec
 
     ## DEFINE MODEL
     model = GNNChain(
-        Dropout(0.5),
+        #Dropout(0.5),
         GCNConv(nin => nhidden, relu),
-        Dropout(0.5),
+        #Dropout(0.5),
         GCNConv(nhidden => nhidden, relu),
-        Dropout(0.5),
-        Dense(nhidden, nout)) |> device
+        #Dropout(0.5),
+        Dense(nhidden, nout),
+        sigmoid
+        ) |> device
 
     # Define the optimizer
     opt = Flux.setup(Adam(args.η), model)
 
     # LOGGING FUNCTION
     function report(epoch)
-        train_loss, train_f1 = eval_loss_accuracy(X, y, g.train_mask, model, g, Q)
-        eval_loss, eval_f1 = eval_loss_accuracy(X, y, g.eval_mask, model, g, Q)
+        train_loss, train_f1 = eval_loss_accuracy(X, y, g.train_mask, model, g)
+        eval_loss, eval_f1 = eval_loss_accuracy(X, y, g.eval_mask, model, g)
         println("Epoch: $epoch   Train Loss: $train_loss  Train F1: $train_f1  Eval Loss: $eval_loss  Eval F1: $eval_f1")
     end
 
@@ -674,7 +746,7 @@ function train(; kws...)
 
             # Perform forward and backward pass for the batch
             grad = Flux.gradient(model) do model
-                ŷ = SparseMatrixCSC(model(subgraph, X_batch))
+                ŷ = model(subgraph, X_batch)
                 # Use binary cross-entropy instead of MSE
                 Flux.Losses.binarycrossentropy(ŷ, y_batch)
             end
