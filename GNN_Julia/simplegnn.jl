@@ -38,6 +38,11 @@ using BSON
 #using Node2Vec
 using LinearAlgebra
 using IterativeSolvers
+using HTTP
+using JSON
+using MLUtils
+
+
 
 function msc_encoding()
     #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
@@ -123,55 +128,85 @@ u_soft=unique(software_df[!,[:id,:classification]])
 vs=replace!(u_soft[!,:classification],"" => "No_MSC")
 u_soft[!,:classification]=vs
 
+# Create a Set from u_soft.id for fast membership checking
+existing_ids = Set(u_soft.id)
+
+# Replace missing classification with "No_MSC"
+replace!(u_soft[!,:classification], "" => "No_MSC")
+
+# Prepare to accumulate new data for u_soft
+new_entries = Vector{Tuple{Int64, String}}()
+
+# Iterate over software arrays
 for l in software_arrays
     for i in l
-        int_id=parse(Int64, i)
-        if !(int_id in u_soft.id)
-            # Make a GET request to an API
-            req="https://api.zbmath.org/v1/software/"*i
+        int_id = parse(Int64, i)
+
+        # If int_id is not in existing_ids, make a GET request
+        if !(int_id in existing_ids)
+            req = "https://api.zbmath.org/v1/software/" * string(i)
             println(req)
+            
+            # Perform the HTTP request
             response = HTTP.get(req)
             data = JSON.parse(String(response.body))
-            #println(data)
-            #println(keys(data))
-            push!(u_soft,(int_id,join(data["result"]["classification"],";")))
+
+            # Append the new (int_id, classification) to new_entries
+            push!(new_entries, (int_id, join(data["result"]["classification"], ";")))
+
+            # Add the int_id to existing_ids to avoid duplicate requests
+            push!(existing_ids, int_id)
         end    
     end
 end
 
+# Finally, append new entries to the u_soft DataFrame
+if !isempty(new_entries)
+    append!(u_soft, DataFrame(new_entries, [:id, :classification]))
+end
+
 # Parse the response body
 
+# Precompute a lookup table for u_soft by creating a dictionary from id to classification
+id_to_classification = Dict(u_soft.id .=> u_soft.classification)
+
+# Initialize result vector
 vec_msc_soft = Vector{Vector}()
+
+# Iterate over software arrays
 for l in software_arrays
-    arr = Vector{Vector}()
+    arr = Vector{String}()
+
+    # Collect classification values based on id
     for i in l
-        r=filter(row -> row.id ==parse(Int64,i),u_soft)[!,:classification]
-        #println(r)
-        #println(i)
-        arr_msc_s = split(r[1],';')
-        push!(arr, arr_msc_s)
-    end  
-    push!(vec_msc_soft, unique(vcat(arr...)) )
+        if haskey(id_to_classification, parse(Int64, i))
+            # Split classification string into MSC codes and append
+            append!(arr, split(id_to_classification[parse(Int64, i)], ';'))
+        end
+    end
+
+    # Push unique MSC codes to the result vector
+    push!(vec_msc_soft, unique(arr))
 end
 
 
-# Initialize a BitArray with the dimensions (num_labels × number of papers)
+# Initialize the number of papers and MSC labels
 num_papers = length(software_arrays)
 
-
+# Get all unique MSC labels and map them to unique indices
 all_software_msc = unique(vcat(vec_msc_soft...))
-# Map each software label to a unique index
 label_to_msc = Dict(label => i for (i, label) in enumerate(all_software_msc))
 
-num_msc=length(all_software_msc)
-# Create an uninitialized BitArray (BitMatrix)
-msc_soft_hot_matrix = BitArray(undef, num_msc, num_papers)
-# Loop through each array of software labels in software_arrays
+num_msc = length(all_software_msc)
+
+# Pre-allocate the BitArray (BitMatrix) to hold the hot-encoded data
+msc_soft_hot_matrix = falses(num_msc, num_papers)  # Initialize with all false (0)
+
+# Populate the BitMatrix by setting the corresponding bits to true (1)
 for (i, msc_list) in enumerate(vec_msc_soft)
-    # For each software in the list, set the corresponding index in the BitArray to true (1)
     for msc in msc_list
         idx = label_to_msc[msc]
-        msc_soft_hot_matrix[idx, i] = true  # Set the bit to true
+        msc_soft_hot_matrix[idx, i] = true
     end
 end
 
@@ -342,7 +377,7 @@ function random_mask(multi_hot_matrix, at=0.7, eval_ratio=0.15)
 end
 
 # Generate the masks with stratified sampling based on multi_hot_matrix
-train_mask, eval_mask, test_mask = random_mask(multi_hot_matrix)
+train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
 
 # Save the masks
 serialize("train_mask.jls", train_mask)
@@ -427,20 +462,20 @@ Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
 #num_nodes = Dict(:paper => num_papers)
 
-#data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
+data = ((:paper,:cited_by,:paper)=>(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)))
 
-#data = unique(DataFrame(hcat(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)), :auto))
+data = unique(DataFrame(hcat(Vector(filtered_edges.refs_id2), Vector(filtered_edges.paper_id)), :auto))
 
 
 # Combine all node IDs and find unique ones
-#all_nodes = unique(vcat(data.x1, data.x2))
+all_nodes = unique(vcat(data.x1, data.x2))
 
 # Create a dictionary to map old node IDs to new sequential IDs
-#node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
+node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
 
 # Remap the node IDs in your data
-#new_x1 = [node_map[node] for node in data.x1]
-#new_x2 = [node_map[node] for node in data.x2]
+new_x1 = [node_map[node] for node in data.x1]
+new_x2 = [node_map[node] for node in data.x2]
 
 # Create a new GNNGraph with remapped node IDs
 
@@ -487,25 +522,8 @@ for row in eachrow(data)
     if target_node in dic_knn[source_node][1]
         push!(filtered_edges_knn, (source_node, target_node))
     end
-end =#
+end =#train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
 
-############################
-
-
-
-############################
-c = combine(first, groupby(filtered_edges[:, [:paper_id, :refs_id2]], :paper_id))
-
-
-# Combine all node IDs and find unique ones
-all_nodes = unique(vcat(c[:, :refs_id2], c[:, :paper_id]))
-
-# Create a dictionary to map old node IDs to new sequential IDs
-node_map = Dict(node => i for (i, node) in enumerate(all_nodes))
-
-# Remap the node IDs in your data
-new_x1 = [node_map[node] for node in c[:, :paper_id]]
-new_x2 = [node_map[node] for node in c[:, :refs_id2]]
 
 
 ############################ Target preparation
@@ -516,23 +534,117 @@ new_x2 = [node_map[node] for node in c[:, :refs_id2]]
 #end
 
 
+using Random, SparseArrays
+
+# Adjusted function for SparseMatrixCSC with correct concatenation and original sample preservation
+function oversample_onehot_sparse(X::SparseMatrixCSC, y::SparseMatrixCSC, label_counts, max_count)
+    oversampled_X = [X[:, i] for i in 1:size(X, 2)]  # Start with all original samples
+    oversampled_y = [y[:, i] for i in 1:size(y, 2)]  # Include all original labels
+    
+    for i in 1:size(y, 2)  # Iterate over columns (samples)
+        active_labels = findnz(y[:, i])[1]  # Find non-zero entries (active labels) for the sample
+        if !isempty(active_labels)
+            min_label_count = minimum(label_counts[active_labels])
+
+            # Calculate the oversampling factor
+            oversampling_factor = ceil(Int, max_count / min_label_count)
+
+            # Append oversampled columns, but skip appending the original sample (since it's already included)
+            for _ in 2:oversampling_factor  # Start from 2 to avoid duplicating the original sample
+                push!(oversampled_X, X[:, i])
+                push!(oversampled_y, y[:, i])
+            end
+        end
+    end
+
+    # Convert the vector of sparse columns back into sparse matrices
+    return sparse(hcat(oversampled_X...)), sparse(hcat(oversampled_y...))
+end
+
+X = SparseMatrixCSC{Float32}(Float32.(filtered_msc))
+y = SparseMatrixCSC{Float32}(permutedims(Float32.(msc_soft_hot_matrix)))
+
+label_counts = sum(y, dims=2)  # Sum each row (label) to get the frequency
+max_count = maximum(label_counts)
+
+X_oversampled, y_oversampled = oversample_onehot_sparse(X, y, label_counts, max_count)
+
+println("Original dataset size: ", size(X, 2))
+println("Oversampled dataset size: ", size(X_oversampled, 2))
 
 
 
+# Generate the masks with stratified sampling based on multi_hot_matrix
+train_mask, eval_mask, test_mask = random_mask(permutedims(X_oversampled))
+
+# Save the masks
+serialize("train_mask.jls", train_mask)
+serialize("eval_mask.jls", eval_mask)
+serialize("test_mask.jls", test_mask)
+
+
+
+function extend_graph_with_oversampling(X_oversampled, new_x1, new_x2, desired_num_nodes)
+    num_original_nodes = length(unique(vcat(new_x1, new_x2)))  # Number of original nodes
+    num_new_nodes = desired_num_nodes - num_original_nodes
+
+    # Create new node indices for the artificial nodes
+    if num_new_nodes > 0
+        artificial_nodes = collect(num_original_nodes + 1 : desired_num_nodes)
+    else
+        artificial_nodes = Int[]
+    end
+
+    # Initialize new_x1 and new_x2 to accommodate new nodes
+    extended_new_x1 = copy(new_x1)
+    extended_new_x2 = copy(new_x2)
+
+    # Add new edges for the artificial nodes
+    for i in 1:num_new_nodes
+        # Connect each artificial node to an existing node
+        push!(extended_new_x1, artificial_nodes[i])
+        push!(extended_new_x2, rand(1:num_original_nodes))  # Connect to a random original node
+        
+        # Optionally, connect the new node to another random node or itself
+        push!(extended_new_x1, artificial_nodes[i])
+        push!(extended_new_x2, artificial_nodes[i])  # Connect to itself or another artificial node
+    end
+
+    return extended_new_x1, extended_new_x2, artificial_nodes
+end
+
+# Example usage
+#X_oversampled = rand(Float32, 63, 214096)  # Oversampled feature matrix with 214096 nodes (features)
+#new_x1 = collect(1:63)  # Original source nodes (dummy data)
+#new_x2 = collect(1:63)  # Original target nodes (dummy data)
+
+desired_num_nodes = size(X_oversampled)[2]  # The target number of nodes
+
+# Extend the graph with artificial nodes
+extended_new_x1, extended_new_x2, artificial_nodes = extend_graph_with_oversampling(X_oversampled, new_x1, new_x2, desired_num_nodes)
+
+
+
+
+# Now create the graph with the new nodes and edges
+g = GNNGraph(extended_new_x1, extended_new_x2)
+
+# Check the result
+println("Total nodes in the graph: ", length(unique(vcat(extended_new_x1, extended_new_x2))))
+println("Total edges in the graph: ", length(extended_new_x1))
 
 
 ### GNN initialization
 
-g = GNNGraph(new_x1, new_x2)
+#g = GNNGraph(new_x1, new_x2)
 # Step 2: Define node data (ndata), including features, train_mask, eval_mask, test_mask, and target (P)
 
-
 ndata = (
-    features=SparseMatrixCSC{Float32}(Float32.(filtered_msc)), #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
+    features=X_oversampled, #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
     train_mask=train_mask,            # Training mask
     eval_mask=eval_mask,              # Evaluation/Validation mask
     test_mask=test_mask,              # Test mask
-    target=SparseMatrixCSC{Float32}(Float32.(permutedims(msc_soft_hot_matrix)))                         # The target, reduced via SVD (P matrix)
+    target=y_oversampled                       # The target, reduced via SVD (P matrix)
 )
 
 g = GNNGraph(g, ndata=ndata)
@@ -582,7 +694,7 @@ end
 # Function to extract a subgraph and features from a batch of node indices
 # Updated function to extract a subgraph and features from a batch of node indices
 # Function to extract a subgraph and features from a batch of node indices
-function extract_subgraph(g, node_batch)
+function extract_subgraph(g, node_batch, batch_size)
     num_nodes_in_batch = length(node_batch)  # Actual number of nodes in the batch
     X_batch = Array{Float32}(g.features[:, node_batch])  # Features for the batch
 
@@ -605,7 +717,7 @@ function extract_subgraph(g, node_batch)
     num_unique_nodes = length(all_nodes)
 
     # Pad to exactly 128 nodes
-    required_size = 128
+    required_size = batch_size 
 
     if num_unique_nodes < required_size
         # Pad only to reach the required size
@@ -739,7 +851,7 @@ function train(; kws...)
 
         for batch in batches
             # Extract the subgraph, features, and targets for the batch
-            subgraph, X_batch, y_batch = extract_subgraph(g, batch)
+            subgraph, X_batch, y_batch = extract_subgraph(g, batch, args.batch_size)
 
             # Move the data to the appropriate device (GPU/CPU)
             X_batch, y_batch = X_batch |> device, y_batch |> device
