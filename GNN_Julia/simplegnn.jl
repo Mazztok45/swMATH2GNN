@@ -564,6 +564,9 @@ end
 X = SparseMatrixCSC{Float32}(Float32.(filtered_msc))
 y = SparseMatrixCSC{Float32}(permutedims(Float32.(msc_soft_hot_matrix)))
 
+
+
+
 label_counts = sum(y, dims=2)  # Sum each row (label) to get the frequency
 max_count = maximum(label_counts)
 
@@ -571,6 +574,15 @@ X_oversampled, y_oversampled = oversample_onehot_sparse(X, y, label_counts, max_
 
 println("Original dataset size: ", size(X, 2))
 println("Oversampled dataset size: ", size(X_oversampled, 2))
+
+
+using Imbalance
+random_undersample(
+    X, y; 
+    ratios=1.0, rng=default_rng(), 
+    try_preserve_type=true
+)
+
 
 # Generate the masks with stratified sampling based on multi_hot_matrix
 train_mask, eval_mask, test_mask = random_mask(permutedims(X_oversampled))
