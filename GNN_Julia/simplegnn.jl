@@ -123,7 +123,7 @@ end
 multi_hot_matrix = permutedims(multi_hot_matrix)
 
 #multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
-
+software_df  = generate_software_dataframe()
 u_soft=unique(software_df[!,[:id,:classification]])
 vs=replace!(u_soft[!,:classification],"" => "No_MSC")
 u_soft[!,:classification]=vs
@@ -572,8 +572,6 @@ X_oversampled, y_oversampled = oversample_onehot_sparse(X, y, label_counts, max_
 println("Original dataset size: ", size(X, 2))
 println("Oversampled dataset size: ", size(X_oversampled, 2))
 
-
-
 # Generate the masks with stratified sampling based on multi_hot_matrix
 train_mask, eval_mask, test_mask = random_mask(permutedims(X_oversampled))
 
@@ -613,6 +611,7 @@ function extend_graph_with_oversampling(X_oversampled, new_x1, new_x2, desired_n
     return extended_new_x1, extended_new_x2, artificial_nodes
 end
 
+
 # Example usage
 #X_oversampled = rand(Float32, 63, 214096)  # Oversampled feature matrix with 214096 nodes (features)
 #new_x1 = collect(1:63)  # Original source nodes (dummy data)
@@ -625,15 +624,21 @@ extended_new_x1, extended_new_x2, artificial_nodes = extend_graph_with_oversampl
 
 
 
-
-# Now create the graph with the new nodes and edges
-g = GNNGraph(extended_new_x1, extended_new_x2)
-
 # Check the result
 println("Total nodes in the graph: ", length(unique(vcat(extended_new_x1, extended_new_x2))))
 println("Total edges in the graph: ", length(extended_new_x1))
 
+# Now create the graph with the new nodes and edges
+g = GNNGraph(extended_new_x1, extended_new_x2)
 
+g=sample_neighbors(g,all_nodes)
+
+num_nodes = g.num_nodes
+source, target = edge_index(g)
+
+
+g=GNNGraph((source, target))
+g=add_nodes(g,1)
 ### GNN initialization
 
 #g = GNNGraph(new_x1, new_x2)
@@ -648,6 +653,8 @@ ndata = (
 )
 
 g = GNNGraph(g, ndata=ndata)
+# Clear the edge data if not needed
+  # Empty the edge data store
 
 # Cleaning the memory
 new_x1 = nothing
@@ -677,7 +684,7 @@ Base.@kwdef mutable struct TrainingArgs
     seed = 17              # set seed > 0 for reproducibility
     usecuda = true         # if true use cuda (if available)
     nhidden = 128          # dimension of hidden features
-    batch_size = 512 #128       # batch size for mini-batch training
+    batch_size = 4096 #512 #128       # batch size for mini-batch training
     infotime = 10          # report every `infotime` epochs
 end
 
@@ -847,6 +854,7 @@ function train(; kws...)
     report(0)  # Initial evaluation before training
 
     for epoch in 1:args.epochs
+        println("Epoch: $epoch") 
         batches = create_batches(g, args.batch_size)
 
         for batch in batches
