@@ -534,7 +534,6 @@ end =#train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
 #end
 
 
-using Random, SparseArrays
 
 # Adjusted function for SparseMatrixCSC with correct concatenation and original sample preservation
 function oversample_onehot_sparse(X::SparseMatrixCSC, y::SparseMatrixCSC, label_counts, max_count)
@@ -576,16 +575,36 @@ println("Original dataset size: ", size(X, 2))
 println("Oversampled dataset size: ", size(X_oversampled, 2))
 
 
-using Imbalance
-random_undersample(
-    X, y; 
-    ratios=1.0, rng=default_rng(), 
-    try_preserve_type=true
-)
+
+function sample_dataset(X::SparseMatrixCSC, y::SparseMatrixCSC, target_size::Int)
+    current_size = size(X, 2)
+    if target_size >= current_size
+        return X, y
+    end
+    
+    indices = rand(1:current_size, target_size)
+    return X[:, indices], y[:, indices]
+end
+
+# Set a target size for the dataset after oversampling (e.g., twice the original size)
+target_size = 2 * size(X, 2)
+
+# Perform the oversampling
+X_oversampled, y_oversampled = oversample_onehot_sparse(X, y, label_counts, max_count)
+
+# Sample from the oversampled dataset to control its size
+X_sampled, y_sampled = sample_dataset(X_oversampled, y_oversampled, target_size)
+
+println("Original dataset size: ", size(X, 2))
+println("Oversampled dataset size: ", size(X_oversampled, 2))
+println("Sampled dataset size: ", size(X_sampled, 2))
+
 
 
 # Generate the masks with stratified sampling based on multi_hot_matrix
-train_mask, eval_mask, test_mask = random_mask(permutedims(X_oversampled))
+train_mask, eval_mask, test_mask = random_mask(permutedims(X_sampled))
+# Generate the masks with stratified sampling based on multi_hot_matrix
+#train_mask, eval_mask, test_mask = random_mask(permutedims(X_oversampled))
 
 # Save the masks
 serialize("train_mask.jls", train_mask)
@@ -629,10 +648,12 @@ end
 #new_x1 = collect(1:63)  # Original source nodes (dummy data)
 #new_x2 = collect(1:63)  # Original target nodes (dummy data)
 
-desired_num_nodes = size(X_oversampled)[2]  # The target number of nodes
-
+#desired_num_nodes = size(X_oversampled)[2]  # The target number of nodes
+desired_num_nodes = size(X_sampled)[2]
 # Extend the graph with artificial nodes
-extended_new_x1, extended_new_x2, artificial_nodes = extend_graph_with_oversampling(X_oversampled, new_x1, new_x2, desired_num_nodes)
+#extended_new_x1, extended_new_x2, artificial_nodes = extend_graph_with_oversampling(X_oversampled, new_x1, new_x2, desired_num_nodes)
+
+extended_new_x1, extended_new_x2, artificial_nodes = extend_graph_with_oversampling(X_sampled, new_x1, new_x2, desired_num_nodes)
 
 
 
@@ -650,18 +671,18 @@ source, target = edge_index(g)
 
 
 g=GNNGraph((source, target))
-g=add_nodes(g,1)
+g=add_nodes(g,num_nodes-g.num_nodes)
 ### GNN initialization
 
 #g = GNNGraph(new_x1, new_x2)
 # Step 2: Define node data (ndata), including features, train_mask, eval_mask, test_mask, and target (P)
 
 ndata = (
-    features=X_oversampled, #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
+    features=X_sampled, #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
     train_mask=train_mask,            # Training mask
     eval_mask=eval_mask,              # Evaluation/Validation mask
     test_mask=test_mask,              # Test mask
-    target=y_oversampled                       # The target, reduced via SVD (P matrix)
+    target=y_sampled                       # The target, reduced via SVD (P matrix)
 )
 
 g = GNNGraph(g, ndata=ndata)
@@ -681,6 +702,13 @@ filtered_msc = nothing
 train_mask = nothing
 eval_mask = nothing
 test_mask = nothing
+X_oversampled=nothing
+y_oversampled=nothing
+extended_new_x1=nothing 
+extended_new_x2=nothing
+artificial_nodes=nothing
+X=nothing
+y=nothing
 
 GC.gc()
 
@@ -868,8 +896,9 @@ function train(; kws...)
     for epoch in 1:args.epochs
         println("Epoch: $epoch") 
         batches = create_batches(g, args.batch_size)
-
-        for batch in batches
+        len_batches = length(batches)
+        for (i,batch) in enumerate(batches)
+            println("Batch n°: $i on a total number of $len_batches batches") 
             # Extract the subgraph, features, and targets for the batch
             subgraph, X_batch, y_batch = extract_subgraph(g, batch, args.batch_size)
 
