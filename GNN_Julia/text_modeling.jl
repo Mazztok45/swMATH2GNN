@@ -13,45 +13,13 @@ using GraphNeuralNetworks
 using SparseArrays
 using Distances
 using Base.Threads
+using Serialization
 filtered_msc = deserialize("filtered_msc.jls")
 
 articles_list_dict = extract_articles_metadata()
 software_df  = generate_software_dataframe()
-
-
-t=DataFrame(permutedims(Matrix(g.target[:,g.ndata.eval_mask])),:auto)
-
-f=DataFrame(permutedims(Matrix(g.features[:,g.ndata.eval_mask])),:auto)
-
-df_keywords = unique(software_df[:,[:id,:keywords]])
-
-BSON.@load "model.bson" model opt
-
-
-pred=model(g,g.features)
-
-pred = pred .> 0.5
-pred=pred[:,g.ndata.eval_mask]
-
-pred=permutedims(pred)
-
-precision = sum((pred .& BitMatrix(Matrix(t)))) / (sum(pred) + 1e-6)
-
-# Recall: count true positives over actual positives
-recall = sum((pred .& BitMatrix(Matrix(t))) / (sum(BitMatrix(Matrix(t))) + 1e-6))
-
-# F1-score: harmonic mean of precision and recall
-f1_score = 2 * (precision * recall) / (precision + recall + 1e-6)
-
-
 ## 146346 lines
 input2pap= hcat(permutedims(filtered_msc), grouped_by_paper_id.paper_id, software_arrays)
-## f has has 66777 lines, we need to find the oriig
-filtered_msc=nothing
-g=nothing
-
-GC.gc()
-# Initialize vectors to store the results
 vi = Vector{typeof(input2pap[1, 64])}()
 vs = Vector{typeof(input2pap[1, 65])}()
 
@@ -69,8 +37,128 @@ for line in 1:size(f, 1)
 end
 
 # 66777 lines
+# Track unique identifiers using a built-in set
+unique_identifiers = Set{Int}()
+for i in 1:length(eval_mask)
+    if eval_mask[i] == 0
+        new_values[i] = nothing
+    elseif eval_mask[i] == 1
+        identifier = vi[vi_index]
+        vi_index += 1
+        if !in(identifier, unique_identifiers)
+            new_values[i] = identifier
+            new_eval_mask[i] = 1
+            push!(unique_identifiers, identifier)
+        else
+            new_values[i] = identifier
+            new_eval_mask[i] = 0
+        end
+    end
+end
 
+# Step 2: Verify the sum of new_eval_mask is equal to the number of unique values in vi
+@assert sum(new_eval_mask) == length(unique(vi)) == 3938
 #true_input_target=hcat(Matrix(f),vi,vs)
+
+
+
+
+t=DataFrame(permutedims(Matrix(g.target[:,BitVector(new_eval_mask)])),:auto)
+
+f=DataFrame(permutedims(Matrix(g.features[:,BitVector(new_eval_mask)])),:auto)
+
+df_keywords = unique(software_df[:,[:id,:keywords]])
+
+BSON.@load "model.bson" model opt
+
+
+pred=model(g,g.features)
+
+pred = pred .> 0.1
+pred=pred[:,BitVector(new_eval_mask)]
+
+pred=permutedims(pred)
+
+precision = sum((pred .& BitMatrix(Matrix(t)))) / (sum(pred) + 1e-6)
+
+# Recall: count true positives over actual positives
+recall = sum((pred .& BitMatrix(Matrix(t))) / (sum(BitMatrix(Matrix(t))) + 1e-6))
+
+# F1-score: harmonic mean of precision and recall
+f1_score = 2 * (precision * recall) / (precision + recall + 1e-6)
+# True positives (TP) and true negatives (TN)
+true_positives = sum(pred .& BitMatrix(Matrix(t)))
+true_negatives = sum(.~pred .& .~BitMatrix(Matrix(t)))
+
+# Total number of elements
+total_elements = length(pred)
+
+# Accuracy: (TP + TN) / total
+accuracy = (true_positives + true_negatives) / (total_elements + 1e-6)
+
+println("Metrics:\n - Accuracy: $accuracy\n - Precision: $precision\n - Recall: $recall\n - F1 Score: $f1_score")
+
+
+
+#############
+# Assuming vi is the array with 66777 identifiers
+# and g.ndata.eval_mask is the array with 292692 rows of 0 and 1
+
+# The `new_values` array has 292692 rows, containing `Nothing` for 0 in eval_mask,
+# and identifiers for where 1 was in eval_mask, ensuring no duplicate identifiers.
+# The `new_eval_mask` ensures only unique identifiers are marked with 1.
+
+#############
+#Graph
+
+dfs=unique(software_df[:,[:id,:classification]])
+# Create a new column for classifications as an array of strings
+dfs.classification_split = [split(x, ";") for x in dfs.classification]
+ # Flatten the list of classifications and convert it into a DataFrame
+ classification_list = vcat(dfs.classification_split...)
+ # Flatten the list of classifications and convert it into a DataFrame
+ classification_counts = DataFrame(classification=classification_list)
+# Count the occurrences of each classification
+classification_summary = combine(groupby(classification_counts, :classification), nrow => :count)
+
+
+# Sort the DataFrame by classification in ascending order
+sorted_classification_summary = sort(classification_summary, :classification)
+
+# Extract data from the sorted DataFrame
+classifications = sorted_classification_summary.classification
+counts = sorted_classification_summary.count
+
+# Determine appropriate y-tick values
+yticks_values = 0:2000:maximum(counts)
+
+# Plot a bar chart of classification counts
+bar_plot = bar(classifications, counts, 
+    xlabel = "MSC Code", 
+    ylabel = "Software count", 
+    title = "Distribution of Software Count per MSC Code", 
+    legend = false, 
+    xtickfont = font(8), 
+    rotation = 45,
+    yticks = (yticks_values, [string(v) for v in yticks_values]))  # Set y-ticks explicitly with readable labels
+
+# Display the plot
+
+# Save the plot to a file (e.g., PNG)
+savefig(bar_plot, "msc_code_distribution.png")
+
+# You can also use other formats like:
+# savefig(bar_plot, "msc_code_distribution.pdf")
+# savefig(bar_plot, "msc_code_distribution.svg")
+
+#############
+
+## f has has 66777 lines, we need to find the oriig
+#filtered_msc=nothing
+#g=nothing
+
+GC.gc()
+# Initialize vectors to store the results
 
 
 
@@ -84,8 +172,8 @@ pred_target=hcat(collect(1:size(pred)[1]),pred,vi,vs)
 
 
 # Example matrices `pred` and `t`
-pred = BitMatrix(pred_target[:, 2:69])  # 100 rows, 68 columns
-t = BitMatrix(true_output_target[:, 1:68])  # 200 rows, 68 columns
+#pred = BitMatrix(pred_target[:, 2:69])  # 100 rows, 68 columns
+#t = BitMatrix(true_output_target[:, 1:68])  # 200 rows, 68 columns
 
 # Function to find the top 10 closest rows in `t` to each row in `pred`, in parallel
 function find_closest_rows_parallel(pred, t)
@@ -98,7 +186,7 @@ function find_closest_rows_parallel(pred, t)
         distances = map(j -> hamming(current_row, view(t, j, :)), 1:size(t, 1))
         
         # Get the indices of the 10 smallest distances
-        sorted_indices = partialsortperm(distances, 1:100)
+        sorted_indices = partialsortperm(distances, 1:500)
 
         # Store the result
         closest_indices[i] = sorted_indices
@@ -169,20 +257,186 @@ function check_shared_elements(list1::Vector{Vector{Int64}}, list2::Vector{Vecto
 end
 
 # Compare all_list_s and true_output_target_ids
-shared_results = check_shared_elements(all_list_s, true_output_target_ids)
+
+unique(sort!(DataFrame(hcat(true_output_target[:, 69],true_output_target_ids, all_list_s), :auto)))
+
+df_true=unique(DataFrame(true_output_target[:,69:70],:auto))
+
+
+shared_results = check_shared_elements(closest_rows, df_true.x2)
+
+hcat_shared_result=hcat(true_output_target[:, 69],shared_results )
+
+df_u_hcat=DataFrame(hcat_shared_result,:auto)
+df_u_hcat=unique(df_u_hcat)
+println(sum(df_u_hcat.x2)/size(df_u_hcat)[1])
 
 
 
-println(sum(shared_results))
 
 
+function check_all_elements_included(list1::Vector{Vector{Int64}}, list2::Vector{Vector{Int64}})
+    all_included = Vector{Bool}(undef, length(list1))
 
+    for i in 1:length(list1)
+        all_included[i] = all(x -> x in list1[i], list2[i])
+    end
+
+    return all_included
+end
+
+# Compare all_list_s and true_output_target_ids
+all_included_results = check_all_elements_included(all_list_s, true_output_target_ids)
+
+println(sum(all_included_results))
+
+hcat_shared_result=hcat(true_output_target[:, 69],all_included_results)
+
+df_u_hcat=DataFrame(hcat_shared_result,:auto)
+df_u_hcat=unique(df_u_hcat)
+println(sum(df_u_hcat.x2)/size(df_u_hcat)[1])
+
+
+##### UNTIL HERE 75% of the articles have a software set included in the software set previously identified
+
+###### RFERENCES SECTION
+
+
+##########
+using HTTP, Gumbo, Cascadia
+
+function extract_references(url::String)
+    # Get the HTML content of the page
+    response = HTTP.get(url; require_ssl_verification=false)
+    html_content = String(response.body)
+
+    # Parse the HTML content
+    parsed_html = parsehtml(html_content)
+
+    # Select all `<td>` elements with class "space" that contain references
+    references_cells = eachmatch(Selector("td.space"), parsed_html.root)
+    references = String[]
+
+    # Extract reference text from each selected `<td>` element
+    for (index, cell) in enumerate(references_cells)
+        # Extracting all text content within the cell's children
+        if index > 2
+            println(index)
+            reference_text = Gumbo.text(cell)
+
+            push!(references, strip(reference_text))
+        end
+    end
+
+    return references
+end
+
+# Example usage
+url = "https://zbmath.org/7110436"
+references = extract_references(url)
+
+using Base.Threads
+
+function extract_references(url::String)
+    try
+        # Get the HTML content of the page
+        response = HTTP.get(url; require_ssl_verification=false)
+        html_content = String(response.body)
+
+        # Parse the HTML content
+        parsed_html = parsehtml(html_content)
+
+        # Select all `<td>` elements with class "space" that contain references
+        references_cells = eachmatch(Selector("td.space"), parsed_html.root)
+        references = String[]
+
+        # Extract reference text from each selected `<td>` element
+        for cell in references_cells
+            # Extracting all text content within the cell's children
+            reference_text = Gumbo.text(cell)
+            push!(references, strip(reference_text))
+        end
+
+        return references
+    catch e
+        println("Error accessing URL $url: $e")
+        return String[]  # Return an empty array in case of error
+    end
+end
+
+
+function extract_references_parallel(doc_ids::Vector{String})
+    # Create a container to store references for each document
+    pap2ref = Vector{Vector{String}}(undef, length(doc_ids))
+
+    # Perform parallel extraction using `@threads` macro
+    @threads for i in 1:length(doc_ids)
+        doc_id = doc_ids[i]
+        url = "https://zbmath.org/" * doc_id
+        println("Thread $(threadid()): Processing document ID: $doc_id ($i of $(length(doc_ids)))")  # Log progress
+        references = extract_references(url)
+        pap2ref[i] = references
+        println("Thread $(threadid()): Finished processing document ID: $doc_id")  # Log completion
+    end
+
+    return pap2ref
+end
+
+# Example usage
+
+doc_ids = string.(true_output_target[:, 69])  # Convert each element to String
+references_data = extract_references_parallel(doc_ids)
+println(references_data)
+
+using Arrow, DataFrames
+
+# Assuming references_data and true_output_target have already been extracted
+paper_ids = true_output_target[:, 69]
+
+# Create flat lists of paper IDs and corresponding reference titles
+paper_ids_flat = []
+reference_titles = []
+
+for (i, references) in enumerate(references_data)
+    for reference in references
+        push!(paper_ids_flat, paper_ids[i])
+        push!(reference_titles, reference)
+    end
+end
+
+# Construct DataFrame
+df = DataFrame(paper_id = paper_ids_flat, reference_title = reference_titles)
+
+# Save the DataFrame to an Arrow file
+Arrow.write("references_data.arrow", df)
+
+##########
+######
 
 paper_title= DataFrame(
     col1=[dic[:id] for dic in articles_list_dict],
     col3=[dic[:keywords] for dic in articles_list_dict],
     col4=[dic[:title] for dic in articles_list_dict]
 )
+
+
+text=[
+    (dic[:id], get(dic, :text, get(dic, :keywords, nothing)))
+    for dic in articles_list_dict
+    if ((:text in keys(dic) && dic[:text] != "zbMATH Open Web Interface contents unavailable due to conflicting licenses.") ||
+        (:keywords in keys(dic) && dic[:keywords] != "zbMATH Open Web Interface contents unavailable due to conflicting licenses.")) &&
+       get(dic, :text, get(dic, :keywords, nothing)) != "zbMATH Open Web Interface contents unavailable due to conflicting licenses."
+]
+
+
+println(size(text))
+
+common_elements = intersect(true_output_target[:, 69], ids_in_text)
+
+
+
+
+
 
 # Create a dictionary for fast lookups based on `id` values
 id_to_title = Dict(paper_title.col1[i] => paper_title.col4[i] for i in 1:nrow(paper_title))
