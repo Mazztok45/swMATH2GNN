@@ -145,6 +145,7 @@ end
 dense_one_hot = BitArray(Matrix(one_hot_matrix))
 
 serialize("dense_one_hot.jls",dense_one_hot)
+dense_one_hot=deserialize("dense_one_hot.jls")
 
 #df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
 

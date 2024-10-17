@@ -41,7 +41,7 @@ using IterativeSolvers
 using HTTP
 using JSON
 using MLUtils
-
+using Plots
 
 
 function msc_encoding()
@@ -69,6 +69,41 @@ grouped_by_paper_id = combine(groupby(filtered_data, :paper_id), :software => x 
 
 # Extract the software arrays from the first element of each pair
 software_arrays = [pair.first for pair in grouped_by_paper_id.software_function]
+
+
+########### graph on software mention distribution amongs papers
+
+counts = Dict{String, Int}()
+
+# Iterate over the nested arrays and count each string
+for arr in software_arrays
+    for value in arr
+        counts[value] = get(counts, value, 0) + 1
+    end
+end
+
+
+# Prepare data for plotting
+string_counts = collect(values(counts))  # List of counts only
+
+# Define y-tick positions (from 0 to 28000 with a step of 5000)
+ytick_positions = 0:5000:28000
+
+# Plotting the histogram with custom y-ticks
+hist_plot=histogram(
+    string_counts, 
+    bins=10, 
+    title="Histogram of Software Occurrences", 
+    xlabel="Software Occurrences Count", 
+    ylabel="Frequency", 
+    yticks=(ytick_positions, string.(ytick_positions)),# An example of semi-supervised node classification
+    label=false   # Use the defined y-ticks with integer labels
+)
+# Save the plot to a file (e.g., PNG)
+savefig(hist_plot, "software_mentions_distribution.png")
+########### 
+
+
 
 # Cleaning the memory
 pi_int = nothing
@@ -156,7 +191,7 @@ for l in software_arrays
 
             # Add the int_id to existing_ids to avoid duplicate requests
             push!(existing_ids, int_id)
-        end    
+        end
     end
 end
 
@@ -372,17 +407,16 @@ function random_mask(multi_hot_matrix, at=0.7, eval_ratio=0.15)
         eval_mask[label_indices[(num_train+1):(num_train+num_eval)]] .= true
         test_mask[label_indices[(num_train+num_eval+1):end]] .= true
     end
-
     return train_mask, eval_mask, test_mask
 end
 
 # Generate the masks with stratified sampling based on multi_hot_matrix
-train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
+#train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
 
 # Save the masks
-serialize("train_mask.jls", train_mask)
-serialize("eval_mask.jls", eval_mask)
-serialize("test_mask.jls", test_mask)
+#serialize("train_mask.jls", train_mask)
+#serialize("eval_mask.jls", eval_mask)
+#serialize("test_mask.jls", test_mask)
 
 
 
@@ -407,48 +441,48 @@ test_mask = deserialize("test_mask.jls")
 ############################ Target preparation
 
 # Assuming multi_hot_matrix is sparse
-sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
+#sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
 # Perform truncated SVD using svdl
-S, factorization = svdl(sparse_matrix_float, nsv=50)
+#S, factorization = svdl(sparse_matrix_float, nsv=50)
 # 'P' contains the left singular vectors (U) from the SVD, 
 # representing the reduced-dimensional features for each paper, 
 # aligned with the rows of the original multi-label matrix.
-P = Float32.(permutedims(factorization.P[:, 1:100]))
-Q = Float32.(permutedims(factorization.Q[:, 1:100]))
+#P = Float32.(permutedims(factorization.P[:, 1:100]))
+#Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
 # Sum the multi_hot_matrix along the columns to get label distribution
-label_counts = sum(multi_hot_matrix, dims=1)
+#label_counts = sum(multi_hot_matrix, dims=1)
 
 # Calculate class weights (inverse of the label counts)
-class_weights = 1.0 ./ label_counts
+#class_weights = 1.0 ./ label_counts
 
 ############################ Target Preparation
 
 # Assuming multi_hot_matrix is sparse
-sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
+#sparse_matrix_float = SparseMatrixCSC{Float64,Int}(multi_hot_matrix)
 
 # Sum the multi_hot_matrix along the columns to get label distribution
-label_counts = sum(multi_hot_matrix, dims=1)
+#label_counts = sum(multi_hot_matrix, dims=1)
 
 # Calculate class weights (inverse of the label counts)
-class_weights = SparseMatrixCSC{Float64, Int}(1.0 ./ label_counts)
+#class_weights = SparseMatrixCSC{Float64, Int}(1.0 ./ label_counts)
 
 # Apply class weights in a loop to avoid memory overflow
-weighted_multi_hot_matrix = copy(sparse_matrix_float)  # Initialize a copy
+#weighted_multi_hot_matrix = copy(sparse_matrix_float)  # Initialize a copy
 
 # Multiply each column of the multi-hot matrix by the corresponding class weight
-for col in 1:size(sparse_matrix_float, 2)
-    weighted_multi_hot_matrix[:, col] .= sparse_matrix_float[:, col] .* class_weights[col]
-end
+#for col in 1:size(sparse_matrix_float, 2)
+#    weighted_multi_hot_matrix[:, col] .= sparse_matrix_float[:, col] .* class_weights[col]
+#end
 
 # Perform truncated SVD using svdl on the weighted matrix
-S, factorization = svdl(weighted_multi_hot_matrix, nsv=50)
+#S, factorization = svdl(weighted_multi_hot_matrix, nsv=50)
 
 # 'P' contains the left singular vectors (U) from the SVD, 
 # representing the reduced-dimensional features for each paper, 
 # aligned with the rows of the original multi-label matrix.
-P = Float32.(permutedims(factorization.P[:, 1:100]))
-Q = Float32.(permutedims(factorization.Q[:, 1:100]))
+#P = Float32.(permutedims(factorization.P[:, 1:100]))
+#Q = Float32.(permutedims(factorization.Q[:, 1:100]))
 
 
 
@@ -483,16 +517,16 @@ new_x2 = [node_map[node] for node in data.x2]
 
 
 ############################ Apply PCA
-if isfile("pca_model.jld2")
-    @load "pca_model.jld2" pca_model
-else
-    k = 100  # Number of principal components you want to keep
-    pca_model = fit(PCA, filtered_msc; maxoutdim=k)
-    @save "pca_model.jld2" pca_model
-end
+#if isfile("pca_model.jld2")
+#    @load "pca_model.jld2" pca_model
+#else
+#    k = 100  # Number of principal components you want to keep
+#    pca_model = fit(PCA, filtered_msc; maxoutdim=k)
+#    @save "pca_model.jld2" pca_model
+#end
 
 # Transform the data to the new reduced space
-reduced_data = predict(pca_model, filtered_msc)
+#reduced_data = predict(pca_model, filtered_msc)
 ############################
 
 
@@ -522,7 +556,8 @@ for row in eachrow(data)
     if target_node in dic_knn[source_node][1]
         push!(filtered_edges_knn, (source_node, target_node))
     end
-end =#train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
+end =#
+#train_mask, eval_mask, test_mask = random_mask(msc_soft_hot_matrix)
 
 
 
@@ -679,16 +714,33 @@ g=add_nodes(g,num_nodes-g.num_nodes)
 
 ndata = (
     features=X_sampled, #Float32.(reduced_data),  # The reduced features (e.g., from PCA/SVD)
-    train_mask=train_mask,            # Training mask
+    train_mask=train_mask,            # Training maskimprove 
     eval_mask=eval_mask,              # Evaluation/Validation mask
     test_mask=test_mask,              # Test mask
     target=y_sampled                       # The target, reduced via SVD (P matrix)
 )
 
 g = GNNGraph(g, ndata=ndata)
+
+
+
+
 # Clear the edge data if not needed
   # Empty the edge data store
 
+
+# Assuming g is your graph
+deg = degree(g)  # Calculate degree of each node
+counts = countmap(deg)  # Frequency of each degree
+
+
+x = collect(keys(counts))  # Degrees
+y = collect(values(counts))  # Frequency of each degree
+
+scatter_plot=scatter(log.(x), log.(y), xlabel="log(Degree)", ylabel="log(Frequency)", title="Degree Distribution (log-log)")
+
+savefig(scatter_plot, "degree_distribution.png")
+        
 # Cleaning the memory
 new_x1 = nothing
 new_x2 = nothing
@@ -806,13 +858,6 @@ function extract_subgraph(g, node_batch, batch_size)
     return subgraph, X_batch, SparseMatrixCSC(y_batch)
 end
 
-
-
-
-
-
-
-
 function eval_loss_accuracy(X, y, mask, model, g)
     ŷ = model(g, X)
 
@@ -841,10 +886,6 @@ function eval_loss_accuracy(X, y, mask, model, g)
 
     return round(l, digits=4), round(f1_score, digits=4)
 end
-
-
-
-
 
 # Main training function with updated eval_loss_accuracy
 function train(; kws...)
@@ -927,6 +968,5 @@ function train(; kws...)
     test_loss, test_f1 = eval_loss_accuracy(X, y, g.test_mask, model, g, Q)
     println("Final Test Loss: $test_loss  Final Test F1: $test_f1")
 end
-
 
 train()

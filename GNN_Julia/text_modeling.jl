@@ -16,8 +16,9 @@ using Base.Threads
 using Serialization
 filtered_msc = deserialize("filtered_msc.jls")
 
-articles_list_dict = extract_articles_metadata()
-software_df  = generate_software_dataframe()
+
+#articles_list_dict = extract_articles_metadata()
+
 ## 146346 lines
 input2pap= hcat(permutedims(filtered_msc), grouped_by_paper_id.paper_id, software_arrays)
 vi = Vector{typeof(input2pap[1, 64])}()
@@ -27,6 +28,9 @@ vs = Vector{typeof(input2pap[1, 65])}()
 input2_dict_64 = Dict((input2pap[line, 1:63]...,) => input2pap[line, 64] for line in 1:size(input2pap, 1))
 input2_dict_65 = Dict((input2pap[line, 1:63]...,) => input2pap[line, 65] for line in 1:size(input2pap, 1))
 
+
+t=DataFrame(permutedims(Matrix(g.target[:,g.ndata.test_mask])),:auto)
+f=DataFrame(permutedims(Matrix(g.features[:,g.ndata.test_mask])),:auto)
 # Iterate through `f` and use the dictionaries to find matches
 for line in 1:size(f, 1)
     key = (f[line, 1:63]...,)  # Create a tuple key for the dictionary
@@ -38,11 +42,14 @@ end
 
 # 66777 lines
 # Track unique identifiers using a built-in set
+new_values = Vector{Union{Int, Nothing}}(undef, length(test_mask))
+new_eval_mask = zeros(Int, length(test_mask)) 
 unique_identifiers = Set{Int}()
-for i in 1:length(eval_mask)
-    if eval_mask[i] == 0
+vi_index = 1  
+for i in 1:length(test_mask)
+    if test_mask[i] == 0
         new_values[i] = nothing
-    elseif eval_mask[i] == 1
+    elseif test_mask[i] == 1
         identifier = vi[vi_index]
         vi_index += 1
         if !in(identifier, unique_identifiers)
@@ -57,7 +64,7 @@ for i in 1:length(eval_mask)
 end
 
 # Step 2: Verify the sum of new_eval_mask is equal to the number of unique values in vi
-@assert sum(new_eval_mask) == length(unique(vi)) == 3938
+@assert sum(new_eval_mask) == length(unique(vi))
 #true_input_target=hcat(Matrix(f),vi,vs)
 
 
@@ -67,14 +74,14 @@ t=DataFrame(permutedims(Matrix(g.target[:,BitVector(new_eval_mask)])),:auto)
 
 f=DataFrame(permutedims(Matrix(g.features[:,BitVector(new_eval_mask)])),:auto)
 
-df_keywords = unique(software_df[:,[:id,:keywords]])
+#df_keywords = unique(software_df[:,[:id,:keywords]])
 
 BSON.@load "model.bson" model opt
 
 
 pred=model(g,g.features)
 
-pred = pred .> 0.1
+pred = pred .> 0.4
 pred=pred[:,BitVector(new_eval_mask)]
 
 pred=permutedims(pred)
@@ -100,6 +107,161 @@ println("Metrics:\n - Accuracy: $accuracy\n - Precision: $precision\n - Recall: 
 
 
 
+using NPZ
+
+npzwrite("X_train.npy", Matrix(g.features[:, g.train_mask])')
+npzwrite("y_train.npy", Matrix(g.target[:, g.train_mask])')
+npzwrite("X_test.npy", Matrix(g.features[:,BitVector(new_eval_mask)])')
+npzwrite("y_test.npy", Matrix(g.target[:,BitVector(new_eval_mask)])')
+
+
+
+
+
+###############
+ # Reverse the dictionary
+ # Reverse the dictionary with sorted keys
+function reverse_dict(dict)
+    reversed_dict = Dict{String, Vector{Int64}}()  # Use a Vector to store multiple keys for the same value
+
+    for (key, value) in dict
+        # Split the value by ";", sort it, and join it back into a sorted string
+        sorted_value = join(sort(split(value, ";")), ";")
+
+        # Insert into the reversed dictionary
+        if haskey(reversed_dict, sorted_value)
+            push!(reversed_dict[sorted_value], key)  # Append the key to the existing list
+        else
+            reversed_dict[sorted_value] = [key]  # Create a new entry for this value
+        end
+    end
+
+    return reversed_dict
+end
+
+msc2soft = reverse_dict(id_to_classification)
+
+
+function compare_input_output(pap)
+    function decode_msc_input(sparse_vector, value_to_index, enc)
+        # Step 1: Find active indices (non-zero entries in the sparse vector)
+        active_indices = findall(x -> x != 0.0, sparse_vector)
+
+        # Step 2: Map active indices to original integer MSC codes
+        index_to_value = Dict(v => k for (k, v) in value_to_index)
+        decoded_integers = map(x -> index_to_value[x], active_indices)
+
+        # Step 3: Map integers back to original MSC strings using `enc.invlabel`
+        reverse_invlabel = Dict(v => k for (k, v) in enc.invlabel)
+        decoded_strings = map(x -> reverse_invlabel[x], decoded_integers)
+
+        return decoded_strings
+    end
+
+    sparse_vector = g.ndata[:features][:, pap]  # Sparse vector for the first node
+
+    # Assuming `value_to_index` and `enc` are already defined
+    decoded_msc_codes_input = decode_msc_input(sparse_vector, value_to_index, enc)
+
+
+
+    # Decoding function to map a single row or full matrix back to MSC labels
+    function decode_msc_output(msc_soft_hot, label_to_msc)
+        # Invert the label_to_msc dictionary to map indices back to MSC labels
+        msc_to_label = Dict(v => k for (k, v) in label_to_msc)
+
+        # If msc_soft_hot is a vector (single row), handle it separately
+        if ndims(msc_soft_hot) == 1
+            # Find all indices where the value is true (for single row/vector)
+            true_indices = findall(msc_soft_hot)
+            decoded_msc = [msc_to_label[idx] for idx in true_indices]
+        else
+            # Handle the full matrix case (more than 1 dimension)
+            decoded_msc = Vector{Vector{String}}(undef, size(msc_soft_hot, 1))
+            for paper_idx in 1:size(msc_soft_hot, 1)
+                true_indices = findall(msc_soft_hot[paper_idx, :])
+                decoded_msc[paper_idx] = [msc_to_label[idx] for idx in true_indices]
+            end
+        end
+
+        return decoded_msc
+    end
+    # Call the decode_msc function
+
+   
+    
+    #println("Paper inputs: $decoded_msc_codes_input MSC codes")
+    decoded_labels_pred_ouput = sort(decode_msc_output(pred[pap,:], label_to_msc))
+    decoded_labels_true_ouput= sort(decode_msc_output(BitVector(g.ndata[:target][:,BitVector(new_eval_mask)][:,pap]), label_to_msc))
+    #println("Software MSC codes associated with the paper: $decoded_labels_true_ouput MSC codes")
+    #println("Software MSC codes predicted for the paper: $decoded_labels_pred_ouput MSC codes")
+    #println(all(x -> x in list2, list1)
+    key = join(decoded_labels_true_ouput, ";")
+    println(key)
+    println(msc2soft[key])
+    
+    return decoded_msc_codes_input, decoded_labels_true_ouput, decoded_labels_pred_ouput , msc2soft[key]
+end
+
+# Convert the DataFrame to a dictionary
+id_to_name = Dict(row[:id] => row[:name] for row in eachrow(software_df))
+
+# Function to read the file, extract the first two characters, keep them unique, sort, and join with ";"
+function read_msc_file_extract_unique_sorted_joined_prefix_per_line(file_path)
+    # Open the file and read all lines
+    lines = readlines(file_path)
+
+    # Process each line: split by ";", extract the first two characters, keep them unique, sort, and join with ";"
+    joined_sorted_unique_prefixes_per_line = [join(sort(unique(map(code -> first(code, 2), split(line, ";")))), ";") for line in lines]
+
+    return joined_sorted_unique_prefixes_per_line
+end
+
+
+# Example usage: extract the unique, sorted, and joined prefixes from the file
+joined_sorted_unique_prefixes_per_line = read_msc_file_extract_unique_sorted_joined_prefix_per_line(file_path)
+
+# Print the joined unique and sorted prefixes, line by line (e.g., first 10 lines)
+for prefixes in joined_sorted_unique_prefixes_per_line[1:10]
+    println(prefixes)
+end
+
+
+
+pid= readlines("msc_paper_id.txt")
+
+msc_pid_dict = Dict(joined_sorted_unique_prefixes_per_line[i] => pid[i] for i in 1:length(pid))
+
+
+l = Vector{Int64}()
+  # Initialize an empty vector to store successful line numbers
+for line in 1:4003
+    try
+        res = compare_input_output(line)  # Call the function with the current line number
+        append!(l, line)  # Append the line number to the vector if successful
+    catch
+        # Do nothing, just skip this iteration if there's an error
+    end
+end
+
+
+
+println(msc_pid_dict[join(sort(res[1]),";")])
+
+
+
+# Example usage with articles_list_dict
+result_dict = build_msc_id_dict(articles_list_dict)
+res = compare_input_output(l[86])
+
+
+msc_str=join(sort(res[1]),",")
+# 2. The ArticleID is in the list of IDs
+#filtered_df = filter(row -> row.ArticleID in ids, df_result)
+filtered_df = filter(row -> row.MSC == msc_str, df_result)
+ids=[5061555, 5897342, 2245147, 2231412, 6908897, 5703854, 5073685, 5898959, 6979621, 6668158, 5650127, 7269251, 7471664, 5797495, 7228177, 6598947, 7493569, 5187389, 7649920, 7307310, 6589287, 5659959, 6838878, 7471708, 5382281, 6416853, 5915065, 5486600, 6055236, 6594905, 6306353, 7600813, 7834989, 6274301, 5804331, 6416859, 7378563, 7766966, 6416597, 7667090, 5636084, 5576072, 6055235, 6594900]
+
+filtered_df = filter(row -> row.ArticleID in ids, filtered_df  )
 #############
 # Assuming vi is the array with 66777 identifiers
 # and g.ndata.eval_mask is the array with 292692 rows of 0 and 1

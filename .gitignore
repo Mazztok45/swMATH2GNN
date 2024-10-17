@@ -70,3 +70,10 @@ knn_tree.jld2
 model.bson
 multi_hot_matrix.csv
 plot_1.svg
+references_data.arrow
+GNN_Julia/text_modeling.jl
+y_train.npy
+y_test.npy
+X_train.npy
+X_test.npy
+msc.txt
