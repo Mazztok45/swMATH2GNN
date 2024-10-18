@@ -1,47 +1,50 @@
 # swMATH2GNN
-This work is about mining the swMATH metadata and ingest them into Graph Neural Network with Julia and Python.
+
+This project involves mining swMATH metadata and integrating it into a Graph Neural Network (GNN) using Julia and Python, as part of the research paper "Enhancing Software Detection in Mathematical Research Articles Using Graph Neural Networks and Mathematics Knowledge Graph-Based Citation Modeling".
 
 ## Goal
-The Goal of this work is to use the GNN for link prediction between software and articles to conlcude the
-probability that a mathematical paper contains a certain software. 
 
-Firstly, we need to extract the metadata
+The goal of this project is to use a GNN for link prediction between software and articles to determine the probability that a mathematical paper contains references to specific software.
 
-### Data extraction
+### Data Extraction
 
-The data was extracted in Julia, because the originla plan was to use Julia for this whole project.
-The data was downloaded from th swMath (for the software) and zbMath (for the articles) API and saved as
-multiple json files. The information needed was extracted using julia and saved in a 
-csv file for further use
+The data was extracted using Julia, as the initial plan was to utilize Julia for the entire project. Metadata was obtained from the swMATH (for software) and zbMATH (for articles) APIs and saved as multiple JSON files. The relevant information was then extracted and saved in a CSV file for further use.
 
-### Statistics and Visualisation
-Some descriptive Statistics and visualistion (also with julia) can be found in the notebooks directory.
+### Statistics and Visualization
 
-### GNN
-I decided to work in python for this task, because it is more advanced in this topic.
+Descriptive statistics and visualizations were generated using Julia and can be found in the `notebooks` directory.
 
-In hetero_data.py I preprocessed the data into a HeteroData object.
-The nodes are software and article.
-There are edges between the software nodes, based on the 'related_software' information in the dataset.
-There are edges between the article nodes, based on the 'references' information in the dataset.
-There are edges between the software nodes and article nodes, based on the 'standart_article' information
-in the dataset.
+### Graph Neural Network (GNN)
 
-With this Information, the data could be trained with link prediction. Link prediction takes the edges that are supposed 
-to be predicted into account (the software to article edges), but also the edges between the nodes that don't need perdiction. 
+The implementation of the GNN was performed in Python due to its advanced capabilities in this area.
 
-Unfortunatly, I failed to train the data due to an ImportError in the LinkNeighborLoader 
-in torch_geometric that I could not solve. The LinkNeighborLoader is the right training data loader 
-for this task, according to [this article](https://medium.com/@pytorch_geometric/link-prediction-on-heterogeneous-graphs-with-pyg-6d5c29677c70).
-I also found a [discussion of the problem](https://github.com/pyg-team/pytorch_geometric/discussions/7866)
-in the GitHub of PyG. But the suggested solutions did not work for me.
+In the `hetero_data.py` file, the data is preprocessed into a `HeteroData` object. The nodes represent software and articles, with different types of edges defined as follows:
 
-The link prediction part of this project will have to be a future project for someone else.
+- **Software-to-software edges**: Based on the `related_software` field in the dataset.
+- **Article-to-article edges**: Based on the `references` field in the dataset.
+- **Software-to-article edges**: Based on the `standard_article` field in the dataset.
 
-## Information on julia
-To reproduce this project, julia need to be installed. The file packages.jl includes all 
-packages that need to be installed. When the packages.jl file is run, all packages are installed.
+With this information, the data could be trained for link prediction. Link prediction aims to infer the edges that should exist (software-to-article edges) while also considering existing edges that do not require prediction.
 
+Unfortunately, I encountered an issue during training due to an `ImportError` with the `LinkNeighborLoader` in `torch_geometric`. Despite trying suggested solutions from [this article](https://medium.com/@pytorch_geometric/link-prediction-on-heterogeneous-graphs-with-pyg-6d5c29677c70) and [this GitHub discussion](https://github.com/pyg-team/pytorch_geometric/discussions/7866), I was unable to resolve the issue. Therefore, the link prediction component remains unfinished and can be taken up as a future project.
 
+## Reproducing the Project
 
+To reproduce this project, you need to install Julia. The file `packages.jl` contains all the necessary dependencies. Running `packages.jl` will install all required packages.
 
+### Running the Project
+
+Execute the files in the following order:
+
+1. `GNN_Julia/data_processing.jl` - Data extraction and preprocessing.
+2. `GNN_Julia/simplegnn.jl` - Simple GNN implementation.
+3. `GNN_Julia/analysis.jl` - Statistical analysis.
+4. `GNN/benchmark.py` - Python implementation for benchmarking.
+
+### Update on Dependencies
+
+The `TOML` file contains all necessary dependencies for the project.
+
+---
+
+Feel free to reach out for any questions or contributions to the link prediction task. Any improvements or ideas are welcome!
