@@ -43,7 +43,7 @@ using JSON
 using MLUtils
 using Plots
 
-
+###### SOME FURTHER STEPS AT PREPARING THE DATA BEFORE IMPLEMENTING THE MODELS
 function msc_encoding()
     #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
     return deserialize("dense_one_hot.jls")
@@ -124,22 +124,6 @@ label_to_index = Dict(label => i for (i, label) in enumerate(all_software_labels
 num_labels = length(all_software_labels)
 
 
-# Loop through each array of software labels in software_arrays
-#for software_list in software_arrays
-# Create a zero vector of length equal to the number of unique labels
-#    one_hot_vector = zeros(Int, num_labels)
-
-# For each software in the list, set the corresponding index in the one-hot vector to 1
-#    for software in software_list
-#        idx = label_to_index[software]
-#        one_hot_vector[idx] = 1
-#    end
-
-# Append the multi-hot encoded vector to the list
-#    push!(multi_hot_encoded, one_hot_vector)
-#end
-
-#######
 # Initialize a BitArray with the dimensions (num_labels × number of papers)
 num_papers = length(software_arrays)
 
