@@ -3,15 +3,13 @@ using Flux
 using Flux: onecold, onehotbatch, onehot
 using Flux.Losses: logitcrossentropy
 using GraphNeuralNetworks
-using MLDatasets: Cora
+#using MLDatasets: Cora
 using Statistics, Random
 using CUDA
 CUDA.allowscalar(false)
-using CSV
+
 using DataFrames
 
-using Random
-#using TextAnalysis
 using MultivariateStats
 using SparseArrays
 using StructTypes

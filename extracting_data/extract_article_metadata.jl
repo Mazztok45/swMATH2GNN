@@ -1,9 +1,9 @@
 module DataReaderszbMATH
 using JSON3
 using DataFrames
-using JSONTables
-using CSV
-using StructTypes
+#using JSONTables
+using Arrow
+#using StructTypes
 
 function extract_articles_metadata()
     #=
@@ -154,7 +154,8 @@ function dict_list_to_df(dict_list)
     println(names(df))
     println(size(df))
     println(describe(df))
-    CSV.write("./articles_metadata_collection/full_df.csv",df)
+    #CSV.write("./articles_metadata_collection/full_df.csv",df)
+    Arrow.write("./articles_metadata_collection/full_df_arrow",df)
 end
 
 #dict_list = extract_articles_metadata()

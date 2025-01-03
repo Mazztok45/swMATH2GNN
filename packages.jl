@@ -1,34 +1,43 @@
 import Pkg
-#Pkg.add("EzXML")
-#Pkg.add("JSON")
-Pkg.add("JSON3")
-Pkg.add("DataFrames")
-#Pkg.add("JSONTables")
-#Pkg.add("Flatten")
-#Pkg.add("StructTypes")
-#Pkg.add("Plots")
-Pkg.add("CSV")
-#Pkg.add("PlotlyJS")
-Pkg.add("Statistics")
-#Pkg.add("HypothesisTests")
-#Pkg.add("Distributions")
-#Pkg.add("GeometricFlux")
-Pkg.add("Graphs")
-Pkg.add("GraphPlot")
-#Pkg.add("MetaGraphsNext")
-Pkg.add("Compose")
-Pkg.add("Cairo")
-Pkg.add("Fontconfig")
-#Pkg.add("SGtSNEpi")
-#Pkg.add("GLMakie")
-#Pkg.add("SNAPDatasets")
-Pkg.add("TextAnalysis")
-Pkg.add("MultivariateStats")
-Pkg.add("SparseArrays")
-Pkg.add("LightGraphs")
-#Pkg.add("ScikitLearn")
-#Pkg.add("TikzGraphs")
-#Pkg.add("PaddedViews")
-Pkg.add("GraphNeuralNetworks")
-#Pkg.add("Parquet2")
-Pkg.add("MLLabelUtils")
+
+# Define a list of packages with optional version specifications
+packages = [
+    Pkg.PackageSpec(name="JSON3"),
+    Pkg.PackageSpec(name="DataFrames"),
+    Pkg.PackageSpec(name="Arrow"),
+    Pkg.PackageSpec(name="SparseArrays"),
+    Pkg.PackageSpec(name="MLLabelUtils"),
+    Pkg.PackageSpec(name="StatsBase", version="0.33.21"),  # Specify version 0.33.21 for StatsBase
+    Pkg.PackageSpec(name="Serialization"),
+    Pkg.PackageSpec(name="Random"),
+    Pkg.PackageSpec(name="Statistics"),
+    Pkg.PackageSpec(name="Flux"),
+    Pkg.PackageSpec(name="GraphNeuralNetworks", version="1.0.0"),  # Specify version 1.0.0 for GraphNeuralNetworks
+    Pkg.PackageSpec(name="Graphs"),
+    Pkg.PackageSpec(name="MultivariateStats"),
+    Pkg.PackageSpec(name="StructTypes"),
+    Pkg.PackageSpec(name="JLD2"),
+    Pkg.PackageSpec(name="Metis"),
+    Pkg.PackageSpec(name="BSON"),
+    Pkg.PackageSpec(name="LinearAlgebra"),
+    Pkg.PackageSpec(name="IterativeSolvers"),
+    Pkg.PackageSpec(name="HTTP"),
+    Pkg.PackageSpec(name="JSON"),
+    Pkg.PackageSpec(name="MLUtils"),
+    Pkg.PackageSpec(name="Plots"),
+    Pkg.PackageSpec(name="GraphPlot"),
+    Pkg.PackageSpec(name="Compose"),
+    Pkg.PackageSpec(name="Cairo"),
+    Pkg.PackageSpec(name="Fontconfig"),
+    Pkg.PackageSpec(name="TextAnalysis"),
+    Pkg.PackageSpec(name="LightGraphs"),
+    Pkg.PackageSpec(name="Transformers"),
+    Pkg.PackageSpec(name="Distances"),
+    Pkg.PackageSpec(name="NPZ"),
+    Pkg.PackageSpec(name="NearestNeighbors"),
+    Pkg.PackageSpec(name="LIBSVM"),
+    Pkg.PackageSpec(name="CSV")
+]
+
+# Add all packages in a single command
+Pkg.add(packages)

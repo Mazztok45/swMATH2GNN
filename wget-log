@@ -1,0 +1,24 @@
+HTTP request sent, awaiting response... 206 Partial Content
+Length: 254553793 (243M), 223312385 (213M) remaining [application/x-tar]
+Saving to: ‘julia-1.11.1-linux-x86_64.tar.gz.1’
+
+
+
+2024-12-23 12:43:44 (586 KB/s) - Read error at byte 83692416/254553793 (Success). Retrying.
+
+--2024-12-23 12:43:46--  (try: 3)  https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.1-linux-x86_64.tar.gz
+Connecting to julialang-s3.julialang.org (julialang-s3.julialang.org)|146.75.74.49|:443... connected.
+HTTP request sent, awaiting response... 206 Partial Content
+Length: 254553793 (243M), 170861377 (163M) remaining [application/x-tar]
+Saving to: ‘julia-1.11.1-linux-x86_64.tar.gz.1’
+
+
+
+2024-12-23 12:59:19 (14.9 KB/s) - Read error at byte 84183936/254553793 (Success). Retrying.
+
+--2024-12-23 12:59:22--  (try: 4)  https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.1-linux-x86_64.tar.gz
+Connecting to julialang-s3.julialang.org (julialang-s3.julialang.org)|146.75.74.49|:443... connected.
+HTTP request sent, awaiting response... 206 Partial Content
+Length: 254553793 (243M), 170369857 (162M) remaining [application/x-tar]
+Saving to: ‘julia-1.11.1-linux-x86_64.tar.gz.1’
+
