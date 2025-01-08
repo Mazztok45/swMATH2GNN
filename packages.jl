@@ -12,7 +12,7 @@ packages = [
     Pkg.PackageSpec(name="Random"),
     Pkg.PackageSpec(name="Statistics"),
     Pkg.PackageSpec(name="Flux"),
-    Pkg.PackageSpec(name="GraphNeuralNetworks", version="1.0.0"),  # Specify version 1.0.0 for GraphNeuralNetworks
+    Pkg.PackageSpec(name="GraphNeuralNetworks", version="0.6.7"),  # Specify version 1.0.0 for GraphNeuralNetworks
     Pkg.PackageSpec(name="Graphs"),
     Pkg.PackageSpec(name="MultivariateStats"),
     Pkg.PackageSpec(name="StructTypes"),
