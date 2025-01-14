@@ -20,55 +20,58 @@ import .DataReaderszbMATH: extract_articles_metadata
 using MLLabelUtils
 using StatsBase
 using Arrow
-using Serialization
+using Serializationart_soft = [dic[:software] for dic in articles_list_dict]
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 articles_list_dict = extract_articles_metadata()
 software_df = generate_software_dataframe()
+
 node_features = [dic[:msc] for dic in articles_list_dict]
 art_soft = [dic[:software] for dic in articles_list_dict]
-refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
-refs_soft = filter!(x -> x != nothing,refs_soft)
-refs_soft = Vector{Vector{Any}}(refs_soft)
 paper_id_soft = [dic[:id] for dic in articles_list_dict]
-###
-filt_refs_soft = Vector{Vector}()
-for refs_soft_l in refs_soft
-    l_pap = []
-    for pap in refs_soft_l
-        if pap in paper_id_soft
-            push!(l_pap, pap)
-        end
-    end
-    push!(filt_refs_soft, l_pap)
+
+
+## prepare references to only keep articles in references which mention software
+refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+
+
+df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features,software=art_soft)))
+Arrow.write("GNN_Julia/df_arrow", df)
+
+
+join(apply(x -> x[1:2],df.msc_codes[1]),";")
+
+
+map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
+
+
+
+
+map(x -> split(joinx,";"), split(read("msc.txt",String), '\n'))
+##### Articles MSC codes data processing
+### Function to read articles msc
+node_features = map(x -> split(x,";"), split(read("msc.txt",String), '\n'))
+#### Remove empty MSC codes
+filt_empt_nf =[filter!(x -> !isempty(x), y) for y in node_features if isempty(y)==false]
+### Extending node_features with parent MSC codes
+new_nodes_features= Vector{Vector}()
+maj_cat_vector = Vector{Vector}()
+for l in filt_empt_nf
+    maj_codes=unique([str_msc[1:2] for str_msc in l])
+    push!(new_nodes_features, vcat(l,maj_codes))
+    push!(maj_cat_vector, maj_codes)
 end
 
-paper_id_l = Vector()
-refs_id_l = Vector()
-software_id_l = Vector()
-for (i, j) in enumerate(filt_refs_soft)
-    map(x->push!(refs_id_l,x),j)
-    map(x->push!(paper_id_l,paper_id_soft[i]),j)
-    map(x->push!(software_id_l,art_soft[i]),j)
-end
-
-
-refs_df = unique(sort!(DataFrame(paper_id=paper_id_l,ref_id=refs_id_l,software=software_id_l)))
-Arrow.write("GNN_Julia/papers_edges_arrow/papers_edges_arrow", refs_df)
+### Unique set of MSC codes
+cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features)))
+### Unique set of parent MSC codes
+maj_cat = filter!(!isempty,unique(reduce(vcat, maj_cat_vector)))
 
 
 
 
-### Function to write articles MSC
-nodes_df=DataFrame(col1=paper_id_soft,col2=node_features)
 
-gdf = groupby(nodes_df, :col1)
-
-grouped_concat = combine(gdf, :col2 => (x -> vcat(x...)) => :concatenated_list)
-
-gdf2= groupby(grouped_concat, :col1)
-
-grouped_nodes=combine(gdf2, :concatenated_list=> (x -> join(x, ";")) => :concatenated_list)
+#= 
 
 #msc_vec = [join(elem,";") for elem in grouped_nodes.concatenated_list]
 msc_str = join(grouped_nodes.concatenated_list,'\n')
@@ -82,7 +85,7 @@ open("msc_paper_id.txt", "w") do file
     write(file, msc_str)
 end
 ###
-
+ =#
 ### Function to write articles articles software labels
 #art_soft_str = join(art_soft,'\n')
 #open("art_soft.txt", "w") do file
