@@ -1,3 +1,6 @@
+if basename(pwd()) != "swMATH2GNN"
+    cd("..")
+end 
 using DataFrames
 #using GraphNeuralNetworks
 #using Flux
@@ -20,7 +23,7 @@ import .DataReaderszbMATH: extract_articles_metadata
 using MLLabelUtils
 using StatsBase
 using Arrow
-using Serializationart_soft = [dic[:software] for dic in articles_list_dict]
+using Serialization
 
 ########### FUNCTIONS THAT MUST BE KEPT ###########
 articles_list_dict = extract_articles_metadata()
@@ -38,60 +41,17 @@ refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
 df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features,software=art_soft)))
 Arrow.write("GNN_Julia/df_arrow", df)
 
-
-join(apply(x -> x[1:2],df.msc_codes[1]),";")
-
-
-map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
+df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
 
 
 
-
-map(x -> split(joinx,";"), split(read("msc.txt",String), '\n'))
-##### Articles MSC codes data processing
-### Function to read articles msc
-node_features = map(x -> split(x,";"), split(read("msc.txt",String), '\n'))
-#### Remove empty MSC codes
-filt_empt_nf =[filter!(x -> !isempty(x), y) for y in node_features if isempty(y)==false]
-### Extending node_features with parent MSC codes
-new_nodes_features= Vector{Vector}()
-maj_cat_vector = Vector{Vector}()
-for l in filt_empt_nf
-    maj_codes=unique([str_msc[1:2] for str_msc in l])
-    push!(new_nodes_features, vcat(l,maj_codes))
-    push!(maj_cat_vector, maj_codes)
-end
-
-### Unique set of MSC codes
-cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features)))
-### Unique set of parent MSC codes
-maj_cat = filter!(!isempty,unique(reduce(vcat, maj_cat_vector)))
-
-
-
+df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
 
 
 #= 
 
-#msc_vec = [join(elem,";") for elem in grouped_nodes.concatenated_list]
-msc_str = join(grouped_nodes.concatenated_list,'\n')
-open("msc.txt", "w") do file
-    write(file, msc_str)
-end
-
-
-msc_str = join(grouped_nodes.col1,'\n')
-open("msc_paper_id.txt", "w") do file
-    write(file, msc_str)
-end
-###
- =#
-### Function to write articles articles software labels
-#art_soft_str = join(art_soft,'\n')
-#open("art_soft.txt", "w") do file
-#    write(file, art_soft_str)
-#end
-########### END ###########
+map(x -> split(joinx,";"), split(read("msc.txt",String), '\n')) =#
+#= 
 
 
 ##### Articles MSC codes data processing
@@ -107,11 +67,11 @@ for l in filt_empt_nf
     push!(new_nodes_features, vcat(l,maj_codes))
     push!(maj_cat_vector, maj_codes)
 end
-
+ =#
 ### Unique set of MSC codes
-cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features)))
+#= cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features))) =#
 ### Unique set of parent MSC codes
-maj_cat = filter!(!isempty,unique(reduce(vcat, maj_cat_vector)))
+maj_cat = filter!(!isempty,unique(reduce(vcat, df.msc_codes_2)))
 
 
 ###Encoding the nodes
@@ -124,7 +84,7 @@ maj_cat = filter!(!isempty,unique(reduce(vcat, maj_cat_vector)))
 ####new strat
 enc=labelenc(maj_cat)
 ### Get the encoded MSC node features
-enc_node_features=[map(x -> enc.invlabel[x[1:2]], y) for y in new_nodes_features]
+enc_node_features=[map(x -> enc.invlabel[x[1:2]], y) for y in df.msc_codes_2]
 
 df = DataFrame(msc=enc_node_features)
 ux = unique(reduce(vcat, df.msc))
@@ -147,69 +107,23 @@ end
 dense_one_hot = BitArray(Matrix(one_hot_matrix))
 
 serialize("dense_one_hot.jls",dense_one_hot)
+
+
+##### Articles MSC codes data processing
+### Function to read articles msc
+node_features = map(x -> split(x,";"), split(read("msc.txt",String), '\n'))
+#### Remove empty MSC codes
+filt_empt_nf =[filter!(x -> !isempty(x), y) for y in node_features if isempty(y)==false]
+### Extending node_features with parent MSC codes
+new_nodes_features= Vector{Vector}()
+maj_cat_vector = Vector{Vector}()
+for l in filt_empt_nf
+    maj_codes=unique([str_msc[1:2] for str_msc in l])
+    push!(new_nodes_features, vcat(l,maj_codes))
+    push!(maj_cat_vector, maj_codes)
+end
+ =#
+### Unique set of MSC codes
+#= cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features))) =#
+### Uni
 dense_one_hot=deserialize("dense_one_hot.jls")
-
-#df_enc = DataFrame(dense_one_hot, Symbol.(string.(ux)))
-
-#Arrow.write("GNN_Julia/msc_arrow/arrow", df_enc)
-
-
-
-##### Software data processing
-## Reading data
-#software_df  = generate_software_dataframe()
-#art_soft = split(read("art_soft.txt",String), '\n')
-
-### Encoding software
-#enc_soft=labelenc(art_soft)
-#soft_enc=map(x -> enc_soft.invlabel[x],art_soft)
-
-
-#####CHATGPT - MSC to software mapping
-#function collect_msc_to_soft(enc_node_features, soft_enc)
-    # Estimate the size for the edge list if possible
-#    total_edges = sum(length(l_msc) for l_msc in enc_node_features)  # Total expected number of edges
-
-    # Preallocate storage for edges (MSC -> Software pairs)
-#    msc_to_soft = Vector{Vector{Int}}(undef, total_edges)
-
-    # Track index
-#    edge_index = 1
-
-    # Build the edge list
-#    for (i, soft) in enumerate(soft_enc)
-#        l_msc = enc_node_features[i]  # Get MSC codes for this software
-#        for msc in l_msc
-#            msc_to_soft[edge_index] = [msc, soft]
-#            edge_index += 1
-#        end
-#    end
-
-#    return msc_to_soft
-#end
-
-# Example usage
-# enc_node_features: Vector of Vectors where each inner vector holds MSC codes for a paper/software
-# soft_enc: Vector of software labels corresponding to each paper/software
-#msc_to_soft = collect_msc_to_soft(enc_node_features, soft_enc)
-#Arrow.write("GNN_Julia/msc_arrow/arrow_msc_to_soft", DataFrame(mapreduce(permutedims, vcat, msc_to_soft), :auto))
-#####CHATGPT END
-
-#soft_enc_str = join(soft_enc,'\n')
-#open("soft_enc.csv", "w") do file
-#    write(file, soft_enc_str)
-#end
-
-
-
-#u_soft = map(x->parse(Int64,x),unique(art_soft))
-
-#related_soft = [collect(row)[1][2] for row in software_df.related_software]
-
-#df_rel_soft=DataFrame(col1=software_df.id, col2=related_soft)
-#filt_rel_soft = filter(row -> row.col1 in u_soft && row.col2 in u_soft, df_rel_soft)
-#filt_rel_soft.col1= string.(filt_rel_soft.col1)
-#filt_rel_soft.col2= string.(filt_rel_soft.col2)
-#filt_rel_soft = DataFrame(col1=map(x -> enc_soft.invlabel[x],filt_rel_soft.col1), col2=map(x -> enc_soft.invlabel[x],filt_rel_soft.col2))
-#CSV.write("filt_rel_soft.csv", filt_rel_soft )
-
