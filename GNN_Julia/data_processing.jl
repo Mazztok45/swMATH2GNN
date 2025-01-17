@@ -45,7 +45,7 @@ df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
 
 
 
-df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
+#df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
 
 
 #= 
@@ -109,7 +109,7 @@ dense_one_hot = BitArray(Matrix(one_hot_matrix))
 serialize("dense_one_hot.jls",dense_one_hot)
 
 
-##### Articles MSC codes data processing
+#= ##### Articles MSC codes data processing
 ### Function to read articles msc
 node_features = map(x -> split(x,";"), split(read("msc.txt",String), '\n'))
 #### Remove empty MSC codes
@@ -126,4 +126,76 @@ end
 ### Unique set of MSC codes
 #= cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features))) =#
 ### Uni
-dense_one_hot=deserialize("dense_one_hot.jls")
+#= dense_one_hot=deserialize("dense_one_hot.jls") = =#
+
+
+###### SOME FURTHER STEPS AT PREPARING THE DATA BEFORE IMPLEMENTING THE MODELS
+function msc_encoding()
+    #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
+    return deserialize("dense_one_hot.jls")
+end
+
+
+
+unique_paper_ids = Set(unique(df.paper_id))
+#= 
+function paper_edges()
+    return DataFrame(Arrow.Table("GNN_Julia/papers_edges_arrow/papers_edges_arrow"))
+end
+
+
+filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:paper_id, :software]]))
+ =#
+grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array)
+
+
+merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_msc_by_paper_id.msc_codes_function]
+grouped_data_by_paper_id.merged_msc_codes = merged_msc_column
+# Extract the software arrays from the first element of each pair
+grouped_data_by_paper_id.merged_software = [pair.first for pair in grouped_by_paper_id.software_function]
+
+software_arrays = grouped_data_by_paper_id.merged_software
+
+
+grouped_data_by_paper_id.merged_msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), grouped_data_by_paper_id.merged_msc_codes)
+
+grouped_data_by_paper_id.merged_msc_codes_2 = join.(grouped_data_by_paper_id.merged_msc_codes_2, ",")
+grouped_data_by_paper_id.merged_software = join.(grouped_data_by_paper_id.merged_software, ",")
+
+selected_columns = grouped_data_by_paper_id[:, [:paper_id, :merged_msc_codes_2, :merged_software]]
+
+# Export to CSV
+CSV.write("grouped_data_by_paper_id.csv", selected_columns )
+
+
+########### graph on software mention distribution amongs papers
+using Plots
+counts = Dict{String, Int}()
+
+# Iterate over the nested arrays and count each string
+for arr in software_arrays
+    for value in arr
+        counts[value] = get(counts, value, 0) + 1
+    end
+end
+
+
+# Prepare data for plotting
+string_counts = collect(values(counts))  # List of counts only
+
+# Define y-tick positions (from 0 to 28000 with a step of 5000)
+ytick_positions = 0:5000:28000
+
+# Plotting the histogram with custom y-ticks
+hist_plot=histogram(
+    string_counts, 
+    bins=10, 
+    title="Histogram of Software Occurrences", 
+    xlabel="Software Occurrences Count", 
+    ylabel="Frequency", 
+    yticks=(ytick_positions, string.(ytick_positions)),# An example of semi-supervised node classification
+    label=false   # Use the defined y-ticks with integer labels
+)
+# Save the plot to a file (e.g., PNG)
+savefig(hist_plot, "software_mentions_distribution.png")
+########### 
