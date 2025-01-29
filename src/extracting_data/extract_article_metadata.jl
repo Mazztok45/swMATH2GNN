@@ -12,11 +12,11 @@ function extract_articles_metadata()
     :doi, :id, :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name, :subtitle, :text,
     :title, :year, :zbmath_url
     =#
-    files = readdir("./articles_metadata_collection")
+    files = readdir("./data/articles_metadata")
     df_list = []
     for file in files
         if endswith(file,".json")
-            file_name = string("./articles_metadata_collection/", file)
+            file_name = string("./data/articles_metadata/", file)
             println(file)
             json_string =read(file_name)
             #println(json_string)
@@ -155,7 +155,7 @@ function dict_list_to_df(dict_list)
     println(size(df))
     println(describe(df))
     #CSV.write("./articles_metadata_collection/full_df.csv",df)
-    Arrow.write("./articles_metadata_collection/full_df_arrow",df)
+    Arrow.write("./data/articles_metadata_collection/full_df_arrow",df)
 end
 
 #dict_list = extract_articles_metadata()
