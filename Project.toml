@@ -1,7 +1,12 @@
+name = "swMATH2GNN"
+uuid = "88d840fb-f6e9-4d73-a369-8af192820eb7"  # Replace with your generated UUID
+version = "0.1.0"
+
 [deps]
 Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 MLLabelUtils = "66a33bbf-0c2b-5fc8-a008-9da813334f0a"
