@@ -41,13 +41,15 @@ Manifest.toml
 .env/
 .venv/
 
+
+data/
 # Custom additions
 # Ignore articles_metadata_collection.tar.gz and directories
 articles_metadata_collection.tar.gz
 articles_metadata_collection/
-
+articles_metadata/
 # Ignore data directory
-data/
+software_metadata/
 MSC_2020(5).csv
 art_soft.txt
 soft_enc.csv
