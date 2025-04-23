@@ -22,12 +22,11 @@ function extract_articles_metadata()
             #println(json_string)
             json_file = JSON3.read(json_string)
 
-
             result = json_file.result
             selected_vars = [:contributors, :database, :datestamp, :document_type, :editorial_contributions,
-            :id, :identifier, :keywords, :language, :links, :msc, :references,  :title,
+            :id, :identifier, :keywords, :language, :links, :msc, :references,  :title, :source,
             :year, :zbmath_url]
-            
+
             for item in result    
                 df_dict = Dict()
                 df_dict[:software] = strip(file, ['.','j','s','o','n'])
