@@ -285,6 +285,7 @@ classification_summary = combine(groupby(classification_counts, :classification)
 
 
 # Sort the DataFrame by classification in ascending order
+
 sorted_classification_summary = sort(classification_summary, :classification)
 
 # Extract data from the sorted DataFrame

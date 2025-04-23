@@ -12,7 +12,7 @@ function extract_articles_metadata()
     :doi, :id, :identifier, :keywords, :language, :msc, :ref_ids, :reviewer_name, :subtitle, :text,
     :title, :year, :zbmath_url
     =#
-    files = readdir("./data/articles_metadata")
+    files = readdir("./articles_metadata")
     df_list = []
     for file in files
         if endswith(file,".json")

@@ -9,7 +9,7 @@ This script reads the .json files from the API, creates a df from it, saves it a
 named full_df.csv
 =#
 df = DataFrame()
-json_files = readdir("./data/software_metadata")
+json_files = readdir("./software_metadata")
 selected_vars = [:classification, :description, :articles_count, :authors, :dependencies, :homepage,
 :id, :keywords, :license_terms, :name, :operating_systems, :orms_id,:programming_languages,
 :related_software, :source_code, :standard_articles, :zbmath_url]
