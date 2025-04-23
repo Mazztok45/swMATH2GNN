@@ -16,7 +16,7 @@ function extract_articles_metadata()
     df_list = []
     for file in files
         if endswith(file,".json")
-            file_name = string("./data/articles_metadata/", file)
+            file_name = string("./articles_metadata/", file)
             println(file)
             json_string =read(file_name)
             #println(json_string)
@@ -155,7 +155,7 @@ function dict_list_to_df(dict_list)
     println(size(df))
     println(describe(df))
     #CSV.write("./articles_metadata_collection/full_df.csv",df)
-    Arrow.write("./data/articles_metadata_collection/full_df_arrow",df)
+    Arrow.write("./articles_metadata/full_df_arrow",df)
 end
 
 #dict_list = extract_articles_metadata()

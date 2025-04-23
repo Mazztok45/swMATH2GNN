@@ -18,7 +18,7 @@ function generate_software_dataframe()
     for file in json_files
         if endswith(file,".csv")==false
             println(file)
-            json_file = JSON3.read(string("./data/software_metadata", file))
+            json_file = JSON3.read(string("./software_metadata/", file))
             for k in keys(json_file)
                 temp_dict = copy(json_file[k])
                 for var in selected_vars
