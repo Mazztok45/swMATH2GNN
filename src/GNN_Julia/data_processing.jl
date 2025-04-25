@@ -29,7 +29,7 @@ using CSV
 if !isfile("GNN_Julia/df_arrow")
     ########### Section to run if df_arrow does not exist ###########
     articles_list_dict = extract_articles_metadata()
-    software_df = generate_software_dataframe()
+    #software_df = generate_software_dataframe()
 
     node_features = [dic[:msc] for dic in articles_list_dict]
     art_soft = [dic[:software] for dic in articles_list_dict]
