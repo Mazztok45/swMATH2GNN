@@ -202,8 +202,7 @@ serialize("msc_soft_hot_matrix.jls",msc_soft_hot_matrix)
 
 
 # Number of unique labels (30,694) and papers (146,346)
-#num_labels = 30694
-#num_papers = length(multi_label_data)
+#num_labels = 30694332669
 
 # Function to handle both single-label and multi-label cases without losing OneHotMatrix type
 #function combine_labels(labels::Vector{Int64}, num_labels::Int64)
