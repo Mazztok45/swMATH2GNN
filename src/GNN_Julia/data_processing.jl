@@ -24,30 +24,26 @@ using MLLabelUtils
 using StatsBase
 using Arrow
 using Serialization
+using CSV
 
-########### FUNCTIONS THAT MUST BE KEPT ###########
-articles_list_dict = extract_articles_metadata()
-software_df = generate_software_dataframe()
+if !isfile("GNN_Julia/df_arrow")
+    ########### Section to run if df_arrow does not exist ###########
+    articles_list_dict = extract_articles_metadata()
+    software_df = generate_software_dataframe()
 
-node_features = [dic[:msc] for dic in articles_list_dict]
-art_soft = [dic[:software] for dic in articles_list_dict]
-paper_id_soft = [dic[:id] for dic in articles_list_dict]
-titles = [dic[:title] for dic in articles_list_dict]
+    node_features = [dic[:msc] for dic in articles_list_dict]
+    art_soft = [dic[:software] for dic in articles_list_dict]
+    paper_id_soft = [dic[:id] for dic in articles_list_dict]
+    titles = [dic[:title] for dic in articles_list_dict]
 
-#filter(x -> x != "Not available",titles)
-## prepare references to only keep articles in references which mention software
-refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+    refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft)))
+    Arrow.write("GNN_Julia/df_arrow", df)
+end
 
 
-df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features,software=art_soft)))
-Arrow.write("GNN_Julia/df_arrow", df)
-
+########## 
 df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
-
-
-
-#df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
-
 
 #= 
 
@@ -71,8 +67,6 @@ end
  =#
 ### Unique set of MSC codes
 #= cat_nodes = filter!(!isempty,unique(reduce(vcat, new_nodes_features))) =#
-### Unique set of parent MSC codes
-maj_cat = filter!(!isempty,unique(reduce(vcat, df.msc_codes_2)))
 
 
 ###Encoding the nodes
@@ -82,13 +76,16 @@ maj_cat = filter!(!isempty,unique(reduce(vcat, df.msc_codes_2)))
 
 #CSV.write("msc_edges.csv", DataFrame(col1=maj_cat_enc,col2=cat_nodes_enc))
 
-####new strat
+
+####### BEGIN SECTION NOT USEFUL ANYMORE #######
+df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
+maj_cat = filter!(!isempty,unique(reduce(vcat, df.msc_codes_2)))
 enc=labelenc(maj_cat)
 ### Get the encoded MSC node features
 enc_node_features=[map(x -> enc.invlabel[x[1:2]], y) for y in df.msc_codes_2]
 
-df = DataFrame(msc=enc_node_features)
-ux = unique(reduce(vcat, df.msc))
+df_2 = DataFrame(msc=enc_node_features)
+ux = unique(reduce(vcat, df_2.msc))
 sort!(ux)
 value_to_index = Dict(value => i for (i, value) in enumerate(ux))
 
@@ -108,7 +105,7 @@ end
 dense_one_hot = BitArray(Matrix(one_hot_matrix))
 
 serialize("dense_one_hot.jls",dense_one_hot)
-
+####### END SECTION NOT USEFUL ANYMORE #######
 
 #= ##### Articles MSC codes data processing
 ### Function to read articles msc
@@ -131,14 +128,14 @@ end
 
 
 ###### SOME FURTHER STEPS AT PREPARING THE DATA BEFORE IMPLEMENTING THE MODELS
-function msc_encoding()
+#function msc_encoding()
     #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
-    return deserialize("dense_one_hot.jls")
-end
+ #   return deserialize("dense_one_hot.jls")
+#end
 
 
 
-unique_paper_ids = Set(unique(df.paper_id))
+#unique_paper_ids = Set(unique(df.paper_id))
 #= 
 function paper_edges()
     return DataFrame(Arrow.Table("GNN_Julia/papers_edges_arrow/papers_edges_arrow"))
@@ -150,10 +147,10 @@ filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:p
 grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array)
 
 
-merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_msc_by_paper_id.msc_codes_function]
+merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_function]
 grouped_data_by_paper_id.merged_msc_codes = merged_msc_column
 # Extract the software arrays from the first element of each pair
-grouped_data_by_paper_id.merged_software = [pair.first for pair in grouped_by_paper_id.software_function]
+grouped_data_by_paper_id.merged_software = [pair.first for pair in grouped_data_by_paper_id.software_function]
 
 software_arrays = grouped_data_by_paper_id.merged_software
 
