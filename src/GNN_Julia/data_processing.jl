@@ -144,7 +144,7 @@ end
 
 filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:paper_id, :software]]))
  =#
-grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array)
+grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array, :title)
 
 
 merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_function]
@@ -160,7 +160,7 @@ grouped_data_by_paper_id.merged_msc_codes_2 = map(y-> unique(map(x -> SubString(
 grouped_data_by_paper_id.merged_msc_codes_2 = join.(grouped_data_by_paper_id.merged_msc_codes_2, ",")
 grouped_data_by_paper_id.merged_software = join.(grouped_data_by_paper_id.merged_software, ",")
 
-selected_columns = grouped_data_by_paper_id[:, [:paper_id, :merged_msc_codes_2, :merged_software]]
+selected_columns = grouped_data_by_paper_id[:, [:paper_id, :merged_msc_codes_2, :merged_software, :title]]
 
 # Export to CSV
-CSV.write("grouped_data_by_paper_id.csv", selected_columns )
+CSV.write("grouped_data_by_paper_id.csv", selected_columns)
