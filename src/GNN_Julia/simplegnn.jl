@@ -32,9 +32,7 @@ using Serialization
 #using NearestNeighbors
 using JLD2
 using Metis
-using BSON
-#using Node2Vec
-using LinearAlgebra
+using BSONNaniwa Basic Stone grain 
 using IterativeSolvers
 using HTTP
 using JSON
@@ -72,42 +70,10 @@ software_arrays = [pair.first for pair in grouped_by_paper_id.software_function]
 
 
 
-# Cleaning the memory
-pi_int = nothing
-unique_paper_ids = nothing
-filtered_data = nothing
-grouped_by_paper_id = nothing
-
-GC.gc()
-
-# Collect all unique software labels
-all_software_labels = unique(vcat(software_arrays...))
-
-# Map each software label to a unique index
-label_to_index = Dict(label => i for (i, label) in enumerate(all_software_labels))
 
 
-# Number of unique software labels
-num_labels = length(all_software_labels)
 
-
-# Initialize a BitArray with the dimensions (num_labels × number of papers)
-num_papers = length(software_arrays)
-
-# Create an uninitialized BitArray (BitMatrix)
-multi_hot_matrix = BitArray(undef, num_labels, num_papers)
-
-# Loop through each array of software labels in software_arrays
-for (i, software_list) in enumerate(software_arrays)
-    # For each software in the list, set the corresponding index in the BitArray to true (1)
-    for software in software_list
-        idx = label_to_index[software]
-        multi_hot_matrix[idx, i] = true  # Set the bit to true
-    end
-end
-
-multi_hot_matrix = permutedims(multi_hot_matrix)
-
+#= 
 #multi_label_data = [map(x -> label_to_index[x],l) for l in software_arrays]
 software_df  = generate_software_dataframe()
 u_soft=unique(software_df[!,[:id,:classification]])
@@ -127,7 +93,7 @@ new_entries = Vector{Tuple{Int64, String}}()
 for l in software_arrays
     for i in l
         int_id = parse(Int64, i)
-
+            
         # If int_id is not in existing_ids, make a GET request
         if !(int_id in existing_ids)
             req = "https://api.zbmath.org/v1/software/" * string(i)
@@ -199,7 +165,7 @@ end
 msc_soft_hot_matrix= permutedims(msc_soft_hot_matrix)
 serialize("msc_soft_hot_matrix.jls",msc_soft_hot_matrix)
 ##############
-
+ =#
 
 # Number of unique labels (30,694) and papers (146,346)
 #num_labels = 30694332669
@@ -233,12 +199,12 @@ multi_hot_matrix = nothing
 
 GC.gc()
 
-
+#= 
 final_one_hot_matrix = reduce(hcat, one_hot_vectors)
 
 println("Size of final OneHotMatrix: ", size(final_one_hot_matrix))
 
-
+ =#
 
 ##############
 
@@ -281,27 +247,16 @@ one_hot_data = zeros(UInt32, num_labels, num_papers)
 
 ############
 
+ 
 
 
-serialize("multi_hot_matrix.jls", multi_hot_matrix)
 #Arrow.write("GNN_Julia/multi_hot_encoded.csv", DataFrame(Matrix{Bool}(permutedims(multi_hot_matrix)), :auto))
 # Display one of the multi-hot encoded vectors for checking
 #println(multi_hot_encoded[1])
 
 
-selected_paper_id = Set(unique(grouped_by_paper_id.paper_id))
 
-sd = setdiff(unique_paper_ids, selected_paper_id)
-
-vec_u = collect(unique_paper_ids)
-
-
-l_ind = [i for (i, j) in enumerate(vec_u) if !(j in sd)]
-
-filtered_msc = permutedims(msc_encoding()[l_ind, :])
-
-serialize("filtered_msc.jls", filtered_msc)
-
+ 
 #Arrow.write("GNN_Julia/filtered_msc",filtered_msc)
 
 

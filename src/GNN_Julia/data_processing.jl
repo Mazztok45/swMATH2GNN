@@ -29,8 +29,6 @@ using CSV
 if !isfile("GNN_Julia/df_arrow")
     ########### Section to run if df_arrow does not exist ###########
     articles_list_dict = extract_articles_metadata()
-    #software_df = generate_software_dataframe()
-
     node_features = [dic[:msc] for dic in articles_list_dict]
     art_soft = [dic[:software] for dic in articles_list_dict]
     paper_id_soft = [dic[:id] for dic in articles_list_dict]
@@ -144,23 +142,104 @@ end
 
 filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:paper_id, :software]]))
  =#
-grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array, :title)
+
+ if !isfile("grouped_data_by_paper_id.csv")
+    grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array, :title)
 
 
-merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_function]
-grouped_data_by_paper_id.merged_msc_codes = merged_msc_column
-# Extract the software arrays from the first element of each pair
-grouped_data_by_paper_id.merged_software = [pair.first for pair in grouped_data_by_paper_id.software_function]
-
-software_arrays = grouped_data_by_paper_id.merged_software
+    merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_function]
+    grouped_data_by_paper_id.merged_msc_codes = merged_msc_column
+    # Extract the software arrays from the first element of each pair
 
 
-grouped_data_by_paper_id.merged_msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), grouped_data_by_paper_id.merged_msc_codes)
+    grouped_data_by_paper_id.merged_msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), grouped_data_by_paper_id.merged_msc_codes)
+    grouped_data_by_paper_id.merged_msc_codes_2 = join.(grouped_data_by_paper_id.merged_msc_codes_2, ",")
 
-grouped_data_by_paper_id.merged_msc_codes_2 = join.(grouped_data_by_paper_id.merged_msc_codes_2, ",")
-grouped_data_by_paper_id.merged_software = join.(grouped_data_by_paper_id.merged_software, ",")
+    grouped_data_by_paper_id.merged_software = join.([pair.first for pair in grouped_data_by_paper_id.software_function], ",")
 
-selected_columns = grouped_data_by_paper_id[:, [:paper_id, :merged_msc_codes_2, :merged_software, :title]]
+    selected_columns = grouped_data_by_paper_id[:, [:paper_id, :merged_msc_codes_2, :merged_software, :title]]
 
-# Export to CSV
-CSV.write("grouped_data_by_paper_id.csv", selected_columns)
+    # Export to CSV
+    CSV.write("grouped_data_by_paper_id.csv", selected_columns)
+ end
+selected_columns = DataFrame(CSV.File("grouped_data_by_paper_id.csv"))
+software_arrays = map(x -> parse.(Int, split(x, ",")), selected_columns.merged_software)
+
+# Cleaning the memory
+pi_int = nothing
+unique_paper_ids = nothing
+filtered_data = nothing
+grouped_by_paper_id = nothing
+
+GC.gc()
+
+# Collect all unique software labels
+all_software_labels = unique(vcat(software_arrays...))
+
+# Map each software label to a unique index
+label_to_index = Dict(label => i for (i, label) in enumerate(all_software_labels))
+
+
+# Number of unique software labels
+num_labels = length(all_software_labels)
+
+
+# Initialize a BitArray with the dimensions (num_labels × number of papers)
+num_papers = length(software_arrays)
+
+# Create an uninitialized BitArray (BitMatrix)
+multi_hot_matrix = BitArray(undef, num_labels, num_papers)
+
+# Loop through each array of software labels in software_arrays
+for (i, software_list) in enumerate(software_arrays)
+    # For each software in the list, set the corresponding index in the BitArray to true (1)
+    for software in software_list
+        idx = label_to_index[software]
+        multi_hot_matrix[idx, i] = true  # Set the bit to true
+    end
+end
+
+multi_hot_matrix = permutedims(multi_hot_matrix)
+
+
+serialize("multi_hot_matrix.jls", multi_hot_matrix)
+
+##
+
+function msc_encoding()
+    #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
+    return deserialize("dense_one_hot.jls")
+end
+
+selected_paper_id = Set(unique(grouped_by_paper_id.paper_id))
+
+sd = setdiff(unique_paper_ids, selected_paper_id)
+
+vec_u = collect(unique_paper_ids)
+
+
+l_ind = [i for (i, j) in enumerate(vec_u) if !(j in sd)]
+
+filtered_msc = permutedims(msc_encoding()[l_ind, :])
+
+serialize("filtered_msc.jls", filtered_msc)
+
+
+
+X = SparseMatrixCSC{Float32}(Float32.(filtered_msc))
+y = SparseMatrixCSC{Float32}(permutedims(Float32.(msc_soft_hot_matrix)))
+
+
+### Export the Edges between related software from the software graph
+software_df = generate_software_dataframe()
+
+related_soft_edgelist = sortslices(hcat(software_df.id, map(x -> x[:id], software_df.related_software)),dims=1,by=x->(x[1],x[2]),rev=false)
+
+unique_software_in_articles = unique(reduce(vcat, software_arrays))
+
+software_edges = reduce(hcat,filter(x -> x[1] in unique_software_in_articles && x[2] in unique_software_in_articles, eachrow(related_soft_edgelist)))'
+
+
+
+
+CSV.write("software_graph2.edgelist", Tables.table(software_edges ))
