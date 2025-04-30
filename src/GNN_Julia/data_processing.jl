@@ -33,9 +33,10 @@ if !isfile("GNN_Julia/df_arrow")
     art_soft = [dic[:software] for dic in articles_list_dict]
     paper_id_soft = [dic[:id] for dic in articles_list_dict]
     titles = [dic[:title] for dic in articles_list_dict]
+    links_dic = [dic[:links] for dic in articles_list_dict]
 
     refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
-    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft)))
+    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft, links=links_dic)))
     Arrow.write("GNN_Julia/df_arrow", df)
 end
 
@@ -242,4 +243,4 @@ software_edges = reduce(hcat,filter(x -> x[1] in unique_software_in_articles && 
 
 
 
-CSV.write("software_graph2.edgelist", Tables.table(software_edges ))
+CSV.write("software_graph2.edgelist", Tables.table(software_edges); header = false)
