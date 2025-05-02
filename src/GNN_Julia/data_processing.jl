@@ -33,14 +33,113 @@ if !isfile("GNN_Julia/df_arrow")
     art_soft = [dic[:software] for dic in articles_list_dict]
     paper_id_soft = [dic[:id] for dic in articles_list_dict]
     titles = [dic[:title] for dic in articles_list_dict]
-    links_dic = [dic[:links] for dic in articles_list_dict]
-
+    doi_dic = [:doi in collect(keys(dic)) ? dic[:doi] : "no doi" for dic in articles_list_dict]
     refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
-    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft, links=links_dic)))
+    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft, doi=doi_dic)))
     Arrow.write("GNN_Julia/df_arrow", df)
 end
 
+#####################
 
+using Distributed
+using HTTP
+using JSON3
+using CSV
+using DataFrames
+using Logging
+
+# ========== CONFIGURATION ==========
+const WORKER_COUNT = 4              # Adjust based on your CPU cores
+const BATCH_SIZE = 200              # Memory-safe batch size
+const OUTPUT_FILE = "doi_titles.csv"
+const REQUEST_DELAY = 0.08          # 0.08s delay = ~12.5 req/s per worker
+const USER_AGENT = "YourApp/1.0 (mailto:your@email.com)"  # REPLACE WITH YOUR INFO
+
+# ========== WORKER SETUP ==========
+addprocs(WORKER_COUNT)
+
+@everywhere begin
+    using HTTP, JSON3, DataFrames
+    const CROSSREF_URL = "https://api.crossref.org/works"
+    const HEADERS = ["User-Agent" => $USER_AGENT]
+    const REQ_DELAY = $REQUEST_DELAY
+
+    function fetch_title(doi)
+        try
+            # Rate limit first to prevent flooding
+            sleep(REQ_DELAY)
+            
+            encoded_doi = HTTP.URIParser.escape(doi)
+            response = HTTP.get(
+                "$CROSSREF_URL/$encoded_doi", 
+                HEADERS; 
+                readtimeout=30,
+                retry_non_idempotent=true
+            )
+            
+            if response.status == 200
+                data = JSON3.read(response.body)
+                return get(data["message"]["title"], 1, missing)
+            end
+        catch e
+            # Silent fail - errors logged separately
+        end
+        return missing
+    end
+end
+
+# ========== MAIN PROCESS ==========
+function process_all_dois(doi_list; resume=false)
+    # Initialize or resume progress
+    processed_dois = Set{String}()
+    if resume && isfile(OUTPUT_FILE)
+        df = CSV.read(OUTPUT_FILE, DataFrame)
+        processed_dois = Set(df.DOI)
+    end
+    
+    # Configure logging
+    logger = SimpleLogger(open("doi_errors.log", "a+"))
+    
+    # Process in memory-safe batches
+    with_logger(logger) do
+        total = length(doi_list)
+        for i in 1:BATCH_SIZE:total
+            batch = doi_list[i:min(i+BATCH_SIZE-1, total)]
+            
+            # Skip already processed
+            batch = setdiff(batch, processed_dois)
+            isempty(batch) && continue
+            
+            # Parallel fetch
+            titles = @distributed (vcat) for doi in batch
+                [doi => fetch_title(doi)]
+            end
+            
+            # Safe write
+            df = DataFrame(
+                DOI = first.(titles),
+                Title = last.(titles)
+            )
+            CSV.write(OUTPUT_FILE, df; append=true)
+            
+            # Progress tracking
+            GC.gc()  # Manual memory cleanup
+            progress = min(i+BATCH_SIZE-1, total)
+            @info "Progress: $(round(100*progress/total, digits=1))% ($progress/$total)"
+        end
+    end
+end
+
+# ========== EXECUTION ==========
+# Convert your DOI dictionary to list (replace with actual data)
+doi_urls = [x for x in doi_dic if x ≠ nothing]
+dois = replace.(doi_urls, "https://doi.org/" => "")
+
+# Start processing (set resume=true to continue from partial results)
+process_all_dois(dois; resume=false)
+
+
+#####################
 ########## 
 df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
 
