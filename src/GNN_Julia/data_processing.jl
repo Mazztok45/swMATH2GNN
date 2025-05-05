@@ -39,37 +39,42 @@ if !isfile("GNN_Julia/df_arrow")
     Arrow.write("GNN_Julia/df_arrow", df)
 end
 
-#####################
-
 using Distributed
 using HTTP
 using JSON3
-using CSV
-using DataFrames
+using URIs
 using Logging
+using FilePathsBase
 
 # ========== CONFIGURATION ==========
 const WORKER_COUNT = 4              # Adjust based on your CPU cores
 const BATCH_SIZE = 200              # Memory-safe batch size
-const OUTPUT_FILE = "doi_titles.csv"
 const REQUEST_DELAY = 0.08          # 0.08s delay = ~12.5 req/s per worker
 const USER_AGENT = "YourApp/1.0 (mailto:your@email.com)"  # REPLACE WITH YOUR INFO
+const OUTPUT_DIR = "crossref_titles"  # Folder for saving titles
 
 # ========== WORKER SETUP ==========
 addprocs(WORKER_COUNT)
 
 @everywhere begin
-    using HTTP, JSON3, DataFrames
+    using HTTP, JSON3, URIs, FilePathsBase  # Ensure URIs is included here
     const CROSSREF_URL = "https://api.crossref.org/works"
     const HEADERS = ["User-Agent" => $USER_AGENT]
     const REQ_DELAY = $REQUEST_DELAY
+    const OUTPUT_DIR = $OUTPUT_DIR
+
+    # Ensure output directory exists on all workers
+    if !isdir(OUTPUT_DIR)
+        mkdir(OUTPUT_DIR)
+        @info "Created directory: $OUTPUT_DIR on worker $(myid())"
+    end
 
     function fetch_title(doi)
         try
             # Rate limit first to prevent flooding
             sleep(REQ_DELAY)
             
-            encoded_doi = HTTP.URIParser.escape(doi)
+            encoded_doi = URIs.URI(doi)  # Ensure URIs.URI is used here
             response = HTTP.get(
                 "$CROSSREF_URL/$encoded_doi", 
                 HEADERS; 
@@ -80,9 +85,11 @@ addprocs(WORKER_COUNT)
             if response.status == 200
                 data = JSON3.read(response.body)
                 return get(data["message"]["title"], 1, missing)
+            else
+                @warn "Failed to fetch title for DOI: $doi, status: $(response.status)"
             end
         catch e
-            # Silent fail - errors logged separately
+            @warn "Error fetching title for DOI: $doi, Error: $e"
         end
         return missing
     end
@@ -90,11 +97,17 @@ end
 
 # ========== MAIN PROCESS ==========
 function process_all_dois(doi_list; resume=false)
+    # Ensure output directory exists on the main process
+    if !isdir(OUTPUT_DIR)
+        mkdir(OUTPUT_DIR)
+        @info "Created directory: $OUTPUT_DIR on main process"
+    end
+
     # Initialize or resume progress
     processed_dois = Set{String}()
-    if resume && isfile(OUTPUT_FILE)
-        df = CSV.read(OUTPUT_FILE, DataFrame)
-        processed_dois = Set(df.DOI)
+    if resume && isdir(OUTPUT_DIR)
+        existing_files = readdir(OUTPUT_DIR)
+        processed_dois = Set(basename.(existing_files))  # File names are DOIs
     end
     
     # Configure logging
@@ -103,24 +116,32 @@ function process_all_dois(doi_list; resume=false)
     # Process in memory-safe batches
     with_logger(logger) do
         total = length(doi_list)
+        @info "Starting to process $total DOIs"
         for i in 1:BATCH_SIZE:total
             batch = doi_list[i:min(i+BATCH_SIZE-1, total)]
             
-            # Skip already processed
+            # Skip already processed DOIs (files)
             batch = setdiff(batch, processed_dois)
             isempty(batch) && continue
             
             # Parallel fetch
-            titles = @distributed (vcat) for doi in batch
-                [doi => fetch_title(doi)]
+            @distributed for doi in batch
+                # Check if the file already exists
+                filename = joinpath(OUTPUT_DIR, replace("$doi.txt", "/" => "_"))
+                if isfile(filename)
+                    @info "File for DOI: $doi already exists. Skipping API request."
+                else
+                    title = fetch_title(doi)
+                    if title !== missing
+                        @info "Writing title for DOI: $doi to file $filename on worker $(myid())"
+                        open(filename, "w") do file
+                            write(file, title)
+                        end
+                    else
+                        @warn "No title found for DOI: $doi"
+                    end
+                end
             end
-            
-            # Safe write
-            df = DataFrame(
-                DOI = first.(titles),
-                Title = last.(titles)
-            )
-            CSV.write(OUTPUT_FILE, df; append=true)
             
             # Progress tracking
             GC.gc()  # Manual memory cleanup
@@ -137,6 +158,8 @@ dois = replace.(doi_urls, "https://doi.org/" => "")
 
 # Start processing (set resume=true to continue from partial results)
 process_all_dois(dois; resume=false)
+
+
 
 
 #####################
