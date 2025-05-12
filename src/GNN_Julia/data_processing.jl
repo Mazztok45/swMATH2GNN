@@ -28,47 +28,66 @@ using CSV
 
 if !isfile("GNN_Julia/df_arrow")
     ########### Section to run if df_arrow does not exist ###########
-    #articles_list_dict = extract_articles_metadata()
+    articles_list_dict = extract_articles_metadata()
 
     if !isfile("GNN_Julia/node_features")
-        node_features = [dic[:msc] for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/node_features", node_features)
+        println("Preparing node_features")
+        node_features = [dic[:msc] for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/node_features", Tables.table(node_features, header=["node_features"]))
+        node_features=missing
+        GC.gc()
     end
 
     if !isfile("GNN_Julia/art_soft")
-        art_soft = [dic[:software] for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/art_soft", art_soft)
+        println("Preparing art_soft")
+        art_soft = [dic[:software] for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/art_soft", Tables.table(art_soft, header=["software"]))
+        art_soft=missing
+        GC.gc()
     end
 
     if !isfile("GNN_Julia/paper_id_soft")
-        paper_id_soft = [dic[:id] for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/paper_id_soft", paper_id_soft)
+        println("Preparing paper_id_soft")
+        paper_id_soft = [dic[:id] for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/paper_id_soft", Tables.table(paper_id_soft, header=["paper_id_soft"]))
+        paper_id_soft=missing
+        GC.gc()
     end
 
     if !isfile("GNN_Julia/titles")
-        titles = [dic[:title] for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/titles", titles)
+        println("Preparing titles")
+        titles = [dic[:title] for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/titles", Tables.table(titles, header=["title"]))
+        titles=missing
+        GC.gc()
     end
 
     if !isfile("GNN_Julia/doi_dic")
-        doi_dic = [:doi in collect(keys(dic)) ? dic[:doi] : "no doi" for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/doi_dic", doi_dic)
+        println("Preparing doi_dic")
+        doi_dic = [:doi in collect(keys(dic)) ? dic[:doi] : "no doi" for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/doi_dic", Tables.table(doi_dic, header=["doi"]))
+
+        #doi_dic=missing
+        #GC.gc()
     end
 
     if !isfile("GNN_Julia/refs_soft")
-        refs_soft = [dic[:ref_ids] for dic in extract_articles_metadata()]
-        Arrow.write("GNN_Julia/refs_soft", refs_soft)
+        println("Preparing refs_soft")
+        refs_soft = [dic[:ref_ids] for dic in articles_list_dict]
+        Arrow.write("GNN_Julia/refs_soft", Tables.table(refs_soft, header=["references"]))
+        refs_soft=missing
+        GC.gc()
     end
 
-    node_features = Arrow.Table("GNN_Julia/node_features")
-    art_soft = Arrow.Table("GNN_Julia/art_soft")
-    paper_id_soft = Arrow.Table("GNN_Julia/paper_id_soft")
-    titles = Arrow.Table("GNN_Julia/titles")
-    doi_dic = Arrow.Table("GNN_Julia/doi_dic")
-    refs_soft = Arrow.Table("GNN_Julia/refs_soft")
+    node_features = DataFrame(Arrow.Table("GNN_Julia/node_features"))
+    art_soft = DataFrame(Arrow.Table("GNN_Julia/art_soft"))
+    paper_id_soft = DataFrame(Arrow.Table("GNN_Julia/paper_id_soft"))
+    titles = DataFrame(Arrow.Table("GNN_Julia/titles"))
+    doi_dic = DataFrame(Arrow.Table("GNN_Julia/doi_dic"))
+    refs_soft = DataFrame(Arrow.Table("GNN_Julia/refs_soft"))
 
 
-    df = unique(sort!(DataFrame(paper_id=paper_id_soft, msc_codes=node_features, title=titles, software=art_soft, doi=doi_dic)))
+    df = hcat(node_features,art_soft,paper_id_soft,titles,doi_dic,refs_soft)
     Arrow.write("GNN_Julia/df_arrow", df)
     articles_list_dict = missing
 end
@@ -76,8 +95,6 @@ end
 df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
 #####################
 ########## 
-
-
 
 using Distributed
 using HTTP
@@ -88,7 +105,7 @@ using FilePathsBase
 
 # ========== CONFIGURATION ==========
 const WORKER_COUNT = 4              # Adjust based on your CPU cores
-const BATCH_SIZE = 200              # Memory-safe batch size
+const BATCH_SIZE = 30              # Memory-safe batch size
 const REQUEST_DELAY = 0.08          # 0.08s delay = ~12.5 req/s per worker
 const USER_AGENT = "YourApp/1.0 (mailto:your@email.com)"  # REPLACE WITH YOUR INFO
 const OUTPUT_DIR = "crossref_titles"  # Folder for saving titles
@@ -193,11 +210,12 @@ end
 
 # ========== EXECUTION ==========
 # Convert your DOI dictionary to list (replace with actual data)
-doi_urls = [x for x in doi_dic if x ≠ nothing]
+doi_urls = [x for x in df.doi if x ≠ nothing]
 dois = replace.(doi_urls, "https://doi.org/" => "")
 
 # Start processing (set resume=true to continue from partial results)
-process_all_dois(dois; resume=false)
+process_all_dois(dois; resume=true)
+
 
 #= 
 
