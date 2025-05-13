@@ -25,6 +25,12 @@ using StatsBase
 using Arrow
 using Serialization
 using CSV
+using Distributed
+using HTTP
+using JSON3
+using URIs
+using Logging
+using FilePathsBase
 
 if !isfile("GNN_Julia/df_arrow")
     ########### Section to run if df_arrow does not exist ###########
@@ -96,157 +102,164 @@ df= DataFrame(Arrow.Table("GNN_Julia/df_arrow"))
 #####################
 ########## 
 
-using Distributed
-using HTTP
-using JSON3
-using URIs
-using Logging
-using FilePathsBase
+if !isfile("GNN_Julia/titles2")
 
-# ========== CONFIGURATION ==========
-const WORKER_COUNT = 4              # Adjust based on your CPU cores
-const BATCH_SIZE = 30              # Memory-safe batch size
-const REQUEST_DELAY = 0.08          # 0.08s delay = ~12.5 req/s per worker
-const USER_AGENT = "YourApp/1.0 (mailto:your@email.com)"  # REPLACE WITH YOUR INFO
-const OUTPUT_DIR = "crossref_titles"  # Folder for saving titles
+    if length(readdir("crossref_titles/"))==0
+        # ========== CONFIGURATION ==========
+        const WORKER_COUNT = 4              # Adjust based on your CPU cores
+        const BATCH_SIZE = 30              # Memory-safe batch size
+        const REQUEST_DELAY = 0.08          # 0.08s delay = ~12.5 req/s per worker
+        const USER_AGENT = "YourApp/1.0 (mailto:your@email.com)"  # REPLACE WITH YOUR INFO
+        const OUTPUT_DIR = "crossref_titles"  # Folder for saving titles
 
-# ========== WORKER SETUP ==========
-addprocs(WORKER_COUNT)
+        # ========== WORKER SETUP ==========
+        addprocs(WORKER_COUNT)
 
-@everywhere begin
-    using HTTP, JSON3, URIs, FilePathsBase  # Ensure URIs is included here
-    const CROSSREF_URL = "https://api.crossref.org/works"
-    const HEADERS = ["User-Agent" => $USER_AGENT]
-    const REQ_DELAY = $REQUEST_DELAY
-    const OUTPUT_DIR = $OUTPUT_DIR
+        @everywhere begin
+            using HTTP, JSON3, URIs, FilePathsBase  # Ensure URIs is included here
+            const CROSSREF_URL = "https://api.crossref.org/works"
+            const HEADERS = ["User-Agent" => $USER_AGENT]
+            const REQ_DELAY = $REQUEST_DELAY
+            const OUTPUT_DIR = $OUTPUT_DIR
 
-    # Ensure output directory exists on all workers
-    if !isdir(OUTPUT_DIR)
-        mkdir(OUTPUT_DIR)
-        @info "Created directory: $OUTPUT_DIR on worker $(myid())"
-    end
-
-    function fetch_title(doi)
-        try
-            # Rate limit first to prevent flooding
-            sleep(REQ_DELAY)
-            
-            encoded_doi = URIs.URI(doi)  # Ensure URIs.URI is used here
-            response = HTTP.get(
-                "$CROSSREF_URL/$encoded_doi", 
-                HEADERS; 
-                readtimeout=30,
-                retry_non_idempotent=true
-            )
-            
-            if response.status == 200
-                data = JSON3.read(response.body)
-                return get(data["message"]["title"], 1, missing)
-            else
-                @warn "Failed to fetch title for DOI: $doi, status: $(response.status)"
+            # Ensure output directory exists on all workers
+            if !isdir(OUTPUT_DIR)
+                mkdir(OUTPUT_DIR)
+                @info "Created directory: $OUTPUT_DIR on worker $(myid())"
             end
-        catch e
-            @warn "Error fetching title for DOI: $doi, Error: $e"
-        end
-        return missing
-    end
-end
 
-# ========== MAIN PROCESS ==========
-function process_all_dois(doi_list; resume=false)
-    # Ensure output directory exists on the main process
-    if !isdir(OUTPUT_DIR)
-        mkdir(OUTPUT_DIR)
-        @info "Created directory: $OUTPUT_DIR on main process"
-    end
-
-    # Initialize or resume progress
-    processed_dois = Set{String}()
-    if resume && isdir(OUTPUT_DIR)
-        existing_files = readdir(OUTPUT_DIR)
-        processed_dois = Set(basename.(existing_files))  # File names are DOIs
-    end
-    
-    # Configure logging
-    logger = SimpleLogger(open("doi_errors.log", "a+"))
-    
-    # Process in memory-safe batches
-    with_logger(logger) do
-        total = length(doi_list)
-        @info "Starting to process $total DOIs"
-        for i in 1:BATCH_SIZE:total
-            batch = doi_list[i:min(i+BATCH_SIZE-1, total)]
-            
-            # Skip already processed DOIs (files)
-            batch = setdiff(batch, processed_dois)
-            isempty(batch) && continue
-            
-            # Parallel fetch
-            @distributed for doi in batch
-                # Check if the file already exists
-                filename = joinpath(OUTPUT_DIR, replace("$doi.txt", "/" => "_"))
-                if isfile(filename)
-                    @info "File for DOI: $doi already exists. Skipping API request."
-                else
-                    title = fetch_title(doi)
-                    if title !== missing
-                        @info "Writing title for DOI: $doi to file $filename on worker $(myid())"
-                        open(filename, "w") do file
-                            write(file, title)
-                        end
+            function fetch_title(doi)
+                try
+                    # Rate limit first to prevent flooding
+                    sleep(REQ_DELAY)
+                    
+                    encoded_doi = URIs.URI(doi)  # Ensure URIs.URI is used here
+                    response = HTTP.get(
+                        "$CROSSREF_URL/$encoded_doi", 
+                        HEADERS; 
+                        readtimeout=30,
+                        retry_non_idempotent=true
+                    )
+                    
+                    if response.status == 200
+                        data = JSON3.read(response.body)
+                        return get(data["message"]["title"], 1, missing)
                     else
-                        @warn "No title found for DOI: $doi"
+                        @warn "Failed to fetch title for DOI: $doi, status: $(response.status)"
                     end
+                catch e
+                    @warn "Error fetching title for DOI: $doi, Error: $e"
+                end
+                return missing
+            end
+        end
+
+        # ========== MAIN PROCESS ==========
+        function process_all_dois(doi_list; resume=false)
+            # Ensure output directory exists on the main process
+            if !isdir(OUTPUT_DIR)
+                mkdir(OUTPUT_DIR)
+                @info "Created directory: $OUTPUT_DIR on main process"
+            end
+
+            # Initialize or resume progress
+            processed_dois = Set{String}()
+            if resume && isdir(OUTPUT_DIR)
+                existing_files = readdir(OUTPUT_DIR)
+                processed_dois = Set(basename.(existing_files))  # File names are DOIs
+            end
+            
+            # Configure logging
+            logger = SimpleLogger(open("doi_errors.log", "a+"))
+            
+            # Process in memory-safe batches
+            with_logger(logger) do
+                total = length(doi_list)
+                @info "Starting to process $total DOIs"
+                for i in 1:BATCH_SIZE:total
+                    batch = doi_list[i:min(i+BATCH_SIZE-1, total)]
+                    
+                    # Skip already processed DOIs (files)
+                    batch = setdiff(batch, processed_dois)
+                    isempty(batch) && continue
+                    
+                    # Parallel fetch
+                    @distributed for doi in batch
+                        # Check if the file already exists
+                        filename = joinpath(OUTPUT_DIR, replace("$doi.txt", "/" => "_"))
+                        if isfile(filename)
+                            @info "File for DOI: $doi already exists. Skipping API request."
+                        else
+                            title = fetch_title(doi)
+                            if title !== missing
+                                @info "Writing title for DOI: $doi to file $filename on worker $(myid())"
+                                open(filename, "w") do file
+                                    write(file, title)
+                                end
+                            else
+                                @warn "No title found for DOI: $doi"
+                            end
+                        end
+                    end
+                    
+                    # Progress tracking
+                    GC.gc()  # Manual memory cleanup
+                    progress = min(i+BATCH_SIZE-1, total)
+                    @info "Progress: $(round(100*progress/total, digits=1))% ($progress/$total)"
                 end
             end
-            
-            # Progress tracking
-            GC.gc()  # Manual memory cleanup
-            progress = min(i+BATCH_SIZE-1, total)
-            @info "Progress: $(round(100*progress/total, digits=1))% ($progress/$total)"
         end
+
+        # ========== EXECUTION ==========
+        # Convert your DOI dictionary to list (replace with actual data)
+        doi_urls = filter(row -> row.title == "Not available"  && !isnothing(row.doi), df).doi
+        dois = replace.(doi_urls, "https://doi.org/" => "")
+
+        # Start processing (set resume=true to continue from partial results)
+        process_all_dois(dois; resume=true)
     end
-end
-
-# ========== EXECUTION ==========
-# Convert your DOI dictionary to list (replace with actual data)
-doi_urls = filter(row -> row.title == "Not available"  && !isnothing(row.doi), df).doi
-dois = replace.(doi_urls, "https://doi.org/" => "")
-
-# Start processing (set resume=true to continue from partial results)
-process_all_dois(dois; resume=true)
 
 
 
 
-
-# Read the list of files in the output directory
-l_files = readdir("crossref_titles/")
-new_titles = String[]  # Correct initialization for the empty vector
-#df1= filter(row -> row.title == "Not available", df)
-# Loop through the DataFrame
-for i in 1:size(df, 1)  # `range` is unnecessary in this case
-    if df.title[i] == "Not available"  && !isnothing(df.doi[i])
-        str_file = replace(replace(df.doi[i], "https://doi.org/" => ""), "/" => "_")
-        # Check if a file with the DOI name exists in the directory
-        if string(str_file, ".txt") in l_files
-            # Read the title from the file and push it to `new_titles`
-            vs = readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))
-            if length(vs)==1
-                push!(new_titles, readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))[1])
+    println("Preparing titles enriched with crossref")
+    # Read the list of files in the output directory
+    l_files = readdir("crossref_titles/")
+    new_titles = String[]  # Correct initialization for the empty vector
+    #df1= filter(row -> row.title == "Not available", df)
+    # Loop through the DataFrame
+    for i in 1:size(df, 1)  # `range` is unnecessary in this case
+        if df.title[i] == "Not available"  && !isnothing(df.doi[i])
+            str_file = replace(replace(df.doi[i], "https://doi.org/" => ""), "/" => "_")
+            # Check if a file with the DOI name exists in the directory
+            if string(str_file, ".txt") in l_files
+                # Read the title from the file and push it to `new_titles`
+                vs = readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))
+                if length(vs)==1
+                    push!(new_titles, readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))[1])
+                else
+                    push!(new_titles, df.title[i])
+                end
             else
                 push!(new_titles, df.title[i])
             end
         else
+            # If title is available, push the title from the dataframe
             push!(new_titles, df.title[i])
         end
-    else
-        # If title is available, push the title from the dataframe
-        push!(new_titles, df.title[i])
     end
+
+
+    Arrow.write("GNN_Julia/titles2", Tables.table(new_titles, header=["title"]))
 end
 
-df.title2= new_titles
+select!(df, Not(:title))
+df.title = DataFrame(Arrow.Table("GNN_Julia/titles2")).title
+
+
+
+df.paper_id = df.paper_id_soft
+select!(df, Not(:paper_id_soft))
 #= 
 
 map(x -> split(joinx,";"), split(read("msc.txt",String), '\n')) =#
@@ -278,9 +291,9 @@ end
 
 #CSV.write("msc_edges.csv", DataFrame(col1=maj_cat_enc,col2=cat_nodes_enc))
 
-
+df = filter(x->x.title !="Not available", df)
 ####### BEGIN SECTION NOT USEFUL ANYMORE #######
-df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.msc_codes)
+df.msc_codes_2 = map(y-> unique(map(x -> SubString(x,1:2),y)), df.node_features)
 maj_cat = filter!(!isempty,unique(reduce(vcat, df.msc_codes_2)))
 enc=labelenc(maj_cat)
 ### Get the encoded MSC node features
@@ -347,11 +360,12 @@ end
 filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:paper_id, :software]]))
  =#
 
+
  if !isfile("grouped_data_by_paper_id.csv")
-    grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes => x -> collect(x) => :msc_array, :title)
+    grouped_data_by_paper_id = combine(groupby(df, :paper_id), :software => x -> collect(x) => :software_array, :msc_codes_2 => x -> collect(x) => :msc_array, :title)
 
 
-    merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_function]
+    merged_msc_column = [reduce(vcat, vec(pair.first)) for pair in grouped_data_by_paper_id.msc_codes_2_function]
     grouped_data_by_paper_id.merged_msc_codes = merged_msc_column
     # Extract the software arrays from the first element of each pair
 
@@ -366,6 +380,11 @@ filtered_data = filter(row -> row.paper_id in unique_paper_ids, unique(df[!, [:p
     # Export to CSV
     CSV.write("grouped_data_by_paper_id.csv", selected_columns)
  end
+
+
+
+
+
 selected_columns = DataFrame(CSV.File("grouped_data_by_paper_id.csv"))
 software_arrays = map(x -> parse.(Int, split(x, ",")), selected_columns.merged_software)
 
@@ -414,8 +433,8 @@ function msc_encoding()
     #return DataFrame(Arrow.Table("GNN_Julia/msc_arrow/arrow"))
     return deserialize("dense_one_hot.jls")
 end
-
-selected_paper_id = Set(unique(grouped_by_paper_id.paper_id))
+unique_paper_ids = Set(unique(df.paper_id))
+selected_paper_id = Set(unique(selected_columns.paper_id))
 
 sd = setdiff(unique_paper_ids, selected_paper_id)
 
