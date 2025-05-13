@@ -210,13 +210,43 @@ end
 
 # ========== EXECUTION ==========
 # Convert your DOI dictionary to list (replace with actual data)
-doi_urls = [x for x in df.doi if x ≠ nothing]
+doi_urls = filter(row -> row.title == "Not available"  && !isnothing(row.doi), df).doi
 dois = replace.(doi_urls, "https://doi.org/" => "")
 
 # Start processing (set resume=true to continue from partial results)
 process_all_dois(dois; resume=true)
 
 
+
+
+
+# Read the list of files in the output directory
+l_files = readdir("crossref_titles/")
+new_titles = String[]  # Correct initialization for the empty vector
+#df1= filter(row -> row.title == "Not available", df)
+# Loop through the DataFrame
+for i in 1:size(df, 1)  # `range` is unnecessary in this case
+    if df.title[i] == "Not available"  && !isnothing(df.doi[i])
+        str_file = replace(replace(df.doi[i], "https://doi.org/" => ""), "/" => "_")
+        # Check if a file with the DOI name exists in the directory
+        if string(str_file, ".txt") in l_files
+            # Read the title from the file and push it to `new_titles`
+            vs = readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))
+            if length(vs)==1
+                push!(new_titles, readlines(open(string("crossref_titles/", str_file, ".txt"), "r"))[1])
+            else
+                push!(new_titles, df.title[i])
+            end
+        else
+            push!(new_titles, df.title[i])
+        end
+    else
+        # If title is available, push the title from the dataframe
+        push!(new_titles, df.title[i])
+    end
+end
+
+df.title2= new_titles
 #= 
 
 map(x -> split(joinx,";"), split(read("msc.txt",String), '\n')) =#
