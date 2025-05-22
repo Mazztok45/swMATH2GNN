@@ -36,15 +36,15 @@ counts = sorted_classification_summary.count
 # Determine appropriate y-tick values
 yticks_values = 0:2000:maximum(counts)
 
-# Plot a bar chart of classification counts
 bar_plot = bar(classifications, counts, 
     xlabel = "MSC Code", 
     ylabel = "Software count", 
-    title = "Distribution of Software Count per MSC Code", 
+    title = "Number of Software Projects Categorized by MSC Code", 
     legend = false, 
     xtickfont = font(8), 
     rotation = 45,
-    yticks = (yticks_values, [string(v) for v in yticks_values]))  # Set y-ticks explicitly with readable labels
+    yticks = (yticks_values, [string(v) for v in yticks_values]),
+    size = (900, 600))  # Increase plot size to fit title
 
 # Display the plot
 
