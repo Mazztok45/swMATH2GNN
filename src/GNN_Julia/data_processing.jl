@@ -449,8 +449,8 @@ serialize("filtered_msc.jls", filtered_msc)
 
 
 
-X = SparseMatrixCSC{Float32}(Float32.(filtered_msc))
-y = SparseMatrixCSC{Float32}(permutedims(Float32.(msc_soft_hot_matrix)))
+# X = SparseMatrixCSC{Float32}(Float32.(filtered_msc))
+# y = SparseMatrixCSC{Float32}(permutedims(Float32.(msc_soft_hot_matrix)))
 
 
 ### Export the Edges between related software from the software graph
