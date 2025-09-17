@@ -466,3 +466,24 @@ software_edges = reduce(hcat,filter(x -> x[1] in unique_software_in_articles && 
 
 
 CSV.write("software_graph2.edgelist", Tables.table(software_edges); header = false)
+
+
+# Create a new column with the index from label_to_index dictionary
+software_df[!, :index] = get.(Ref(label_to_index), software_df[!, :id], missing)
+
+# Check the result
+println("First few rows with index:")
+show(first(software_df[!, [:id, :index]], 10))
+
+# Count how many software IDs have corresponding indices
+has_index_count = count(!ismissing, software_df[!, :index])
+println("\nSoftware IDs with indices: ", has_index_count)
+println("Software IDs without indices: ", count(ismissing, software_df[!, :index]))
+println("Total software rows: ", nrow(software_df))
+
+# If you want to handle missing values (convert to a specific value or keep as missing)
+# For example, to convert missing to -1:
+# software_df[!, :index] = coalesce.(software_df[!, :index], -1)
+
+
+CSV.write("software_articles_mapping.csv", software_df[!, [:id, :index, :name, :keywords]])
